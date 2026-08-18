@@ -18,6 +18,17 @@ seguimiento. Los datos van dentro del propio archivo.
 Cortes disponibles: por grupo, por plazo comprado, por estrategia, por
 subyacente, por mes y por tipo de cierre (vendida o expirada sin valor).
 
+## App de captura
+
+Además del tablero, el repositorio sirve una pequeña app instalable para anotar
+la estrategia **en el momento de abrir** una operación — que es lo único que el
+extracto del bróker no puede saber.
+
+**[Abrir la app →](https://mascochicle.github.io/estadistica-opciones/captura/)**
+
+Es una PWA: se instala en el teléfono, funciona sin señal y guarda en el propio
+aparato. Dos toques por operación; el resto de los datos llegan del extracto.
+
 ## Cómo está hecho
 
 Un solo archivo HTML. Las gráficas son SVG generado en el navegador, sin

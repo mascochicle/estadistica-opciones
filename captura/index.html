@@ -1,0 +1,303 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#0a0d12">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Captura">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Captura al Entrar</title>
+<style>
+:root{
+  --fondo:#0a0d12; --panel:#131820; --hundido:#1a212b;
+  --linea:#242c38; --linea2:#36404f;
+  --tinta:#e9edf3; --tinta2:#9ba6b6; --tinta3:#6e7887;
+  --acento:#6fb3ff; --acento-bg:#11253a;
+  --ok:#45d68a; --ok-bg:#0d2b1e;
+  --alerta:#ff8177; --alerta-bg:#2c1414;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;background:var(--fondo);color:var(--tinta);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  line-height:1.45;-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums;
+  padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
+.wrap{max-width:620px;margin:0 auto;padding:16px 13px 40px;display:flex;flex-direction:column;gap:13px}
+
+h1{font-size:21px;font-weight:660;letter-spacing:-.02em;margin:0}
+.eyebrow{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--tinta3);font-weight:680;margin:0 0 4px}
+.sub{color:var(--tinta2);font-size:12.5px;margin:4px 0 0}
+
+.paso{background:var(--panel);border:1px solid var(--linea);border-radius:13px;padding:12px 13px}
+.paso h2{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--tinta3);
+  font-weight:680;margin:0 0 9px;display:flex;align-items:center;gap:7px}
+.num{width:17px;height:17px;border-radius:50%;background:var(--acento);color:var(--fondo);
+  display:grid;place-items:center;font-size:10px;font-weight:700;flex:none}
+.tecla{display:flex;flex-wrap:wrap;gap:6px}
+button{font:inherit;cursor:pointer}
+.t{padding:11px 14px;border-radius:10px;border:1px solid var(--linea2);background:var(--panel);
+  color:var(--tinta);font-size:14.5px;font-weight:600;min-height:46px}
+.t.est{font-size:12.5px;font-weight:520;padding:9px 11px;min-height:42px}
+.t[aria-pressed="true"]{background:var(--acento);border-color:var(--acento);color:var(--fondo)}
+.t:focus-visible{outline:2px solid var(--acento);outline-offset:2px}
+input[type=text]{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--linea2);
+  background:var(--hundido);color:var(--tinta);font:inherit;font-size:14.5px;min-height:46px;margin-top:8px}
+input[type=text]:focus{outline:none;border-color:var(--acento)}
+
+.guardar{width:100%;padding:15px;border-radius:12px;border:0;background:var(--hundido);
+  color:var(--tinta3);font-size:16px;font-weight:680;min-height:56px;margin-top:10px}
+.guardar.listo{background:var(--ok);color:#06180f}
+.resumen{font-size:13px;color:var(--tinta2);margin:10px 0 0;min-height:19px}
+.resumen b{color:var(--tinta)}
+.aviso{font-size:12.5px;padding:9px 12px;border-radius:9px;margin-top:9px;display:none}
+.aviso.on{display:block}
+.aviso.bien{background:var(--ok-bg);color:var(--ok)}
+.aviso.mal{background:var(--alerta-bg);color:var(--alerta)}
+
+.barra{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+.barra .cuenta{font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--tinta3);font-weight:680}
+.chico{margin-left:auto;background:transparent;border:1px solid var(--linea2);color:var(--tinta2);
+  border-radius:9px;padding:7px 12px;font-size:12.5px;min-height:38px}
+.chico:hover{border-color:var(--acento);color:var(--acento)}
+
+ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
+li{background:var(--panel);border:1px solid var(--linea);border-radius:11px;padding:10px 12px;
+  display:flex;align-items:flex-start;gap:10px}
+li .cuando{font-size:11px;color:var(--tinta3);white-space:nowrap;padding-top:2px;min-width:70px}
+li .qq{flex:1;min-width:0}
+li .tk{font-weight:700;font-size:14.5px}
+li .es{font-size:12.5px;color:var(--acento);font-weight:560}
+li .nt{font-size:12.5px;color:var(--tinta2);margin-top:2px;word-break:break-word}
+li .borrar{background:transparent;border:0;color:var(--tinta3);font-size:19px;line-height:1;padding:4px 7px;border-radius:7px}
+.sinnada{color:var(--tinta3);font-size:12.5px;text-align:center;padding:20px 8px;
+  border:1px dashed var(--linea2);border-radius:11px}
+
+dialog{border:0;border-radius:14px;background:var(--panel);color:var(--tinta);padding:0;
+  max-width:560px;width:calc(100% - 26px)}
+dialog::backdrop{background:rgba(0,0,0,.66)}
+.dlg{padding:15px 16px}
+.dlg h3{margin:0 0 4px;font-size:15px;font-weight:660}
+.dlg p{margin:0 0 10px;font-size:12.5px;color:var(--tinta3);line-height:1.55}
+textarea{width:100%;height:190px;background:var(--fondo);color:var(--tinta2);border:1px solid var(--linea2);
+  border-radius:9px;padding:9px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px}
+.dlg .fila{display:flex;gap:8px;margin-top:10px}
+.dlg .fila button{flex:1;padding:11px;border-radius:9px;border:1px solid var(--linea2);
+  background:var(--hundido);color:var(--tinta);font-size:13.5px;min-height:44px}
+.dlg .fila button.pri{background:var(--acento);border-color:var(--acento);color:var(--fondo);font-weight:640}
+.pie{font-size:11.5px;color:var(--tinta3);border-top:1px solid var(--linea);padding-top:12px;line-height:1.6}
+.pie code{background:var(--hundido);padding:1px 5px;border-radius:4px;font-size:11px}
+</style>
+</head>
+<body>
+<div class="wrap">
+<header>
+  <p class="eyebrow">Bitácora de opciones</p>
+  <h1>Captura al Entrar</h1>
+  <p class="sub">Anota <b>por qué</b> entraste, en el momento. Strike, vencimiento, cantidad y
+  precio ya vienen del extracto del bróker.</p>
+</header>
+
+<div class="paso">
+  <h2><span class="num">1</span> Qué operaste</h2>
+  <div class="tecla" id="tickers"></div>
+  <input type="text" id="otroTk" placeholder="otro ticker" maxlength="8"
+         autocapitalize="characters" autocomplete="off" spellcheck="false">
+</div>
+
+<div class="paso">
+  <h2><span class="num">2</span> Con qué estrategia</h2>
+  <div class="tecla" id="estrategias"></div>
+</div>
+
+<div class="paso">
+  <h2><span class="num">3</span> Nota <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--tinta3)">— opcional</span></h2>
+  <input type="text" id="nota" placeholder="lo que quieras recordar" maxlength="160">
+  <p class="resumen" id="resumen"></p>
+  <button class="guardar" id="guardar" disabled>Anotar</button>
+  <div class="aviso" id="aviso"></div>
+</div>
+
+<div class="barra">
+  <span class="cuenta" id="cuenta">Anotadas</span>
+  <button class="chico" id="exportar">Enviar a Claude</button>
+</div>
+
+<ul id="lista"></ul>
+<p class="sinnada" id="sinnada">Todavía no has anotado nada.</p>
+
+<p class="pie">Se guarda en este teléfono y funciona sin señal. Cuando quieras pasármelas,
+dale a <b>Enviar a Claude</b>: copia el texto y pégamelo en el chat. Yo las cruzo con el
+extracto por ticker y fecha, y la bitácora se llena sola.</p>
+</div>
+
+<dialog id="dlg"><div class="dlg">
+  <h3>Copia esto y pégamelo</h3>
+  <p>Son <span id="dlgN"></span> anotaciones. Después de pegármelas puedes borrarlas de aquí,
+  o dejarlas: no estorban.</p>
+  <textarea id="dlgTxt" readonly></textarea>
+  <div class="fila">
+    <button class="pri" id="dlgCopiar">Copiar</button>
+    <button id="dlgCerrar">Cerrar</button>
+  </div>
+  <div class="fila"><button id="dlgBorrar" style="color:var(--alerta)">Borrar todas las anotadas</button></div>
+</div></dialog>
+
+<script>
+(function(){
+"use strict";
+
+var TICKERS = ["SPY","SPX","QQQ","NVDA","AAPL","SLV","GLD","META","TSLA","AMZN","PLTR","XOM"];
+var ESTRATEGIAS = ["0DTE","Gap a la alza","Gap a la alza IMP","Gap B a la alza","Gap B a la alza IMP",
+  "Primer Gap a la alza","Primera vela roja","Ruptura Piso Gap","Ruptura Canal Bajista",
+  "Caida Normal","Caida Fuerte","PM40-hora","Piso Fuerte Día","Techo Fuerte",
+  "Hanger diario","Hanger Semanal","Modelo de los 4 pasos","3 semanas","Verde Rojo semanal",
+  "Estrategia earnings","Fed speech","Estrategia Inflacion","Método propio","Sin estrategia clara"];
+var LLAVE = "capturas_v1";
+
+var g = function(id){ return document.getElementById(id); };
+var sel = {tk:"", est:""};
+var datos = [];
+
+//  Se guarda aqui mismo, en el telefono. Es lo unico que sobrevive a que
+//  la app se cierre, se reinicie el aparato o no haya senal.
+function cargar(){
+  try{ datos = JSON.parse(localStorage.getItem(LLAVE)) || []; }
+  catch(e){ datos = []; }
+  if(!Array.isArray(datos)) datos = [];
+}
+function guardar(){
+  try{
+    localStorage.setItem(LLAVE, JSON.stringify(datos));
+    return true;
+  }catch(e){
+    avisar("No se pudo guardar: " + (e.message || e), false);
+    return false;
+  }
+}
+
+function teclas(destino, valores, clase, campo){
+  g(destino).innerHTML = valores.map(function(v){
+    return '<button class="t '+clase+'" type="button" aria-pressed="false" data-v="'+v+'">'+v+'</button>';
+  }).join("");
+  Array.prototype.forEach.call(g(destino).querySelectorAll(".t"), function(b){
+    b.onclick = function(){
+      sel[campo] = (sel[campo] === b.dataset.v) ? "" : b.dataset.v;
+      if(campo === "tk") g("otroTk").value = "";
+      marcar(destino, campo); resumen();
+    };
+  });
+}
+function marcar(destino, campo){
+  Array.prototype.forEach.call(g(destino).querySelectorAll(".t"), function(b){
+    b.setAttribute("aria-pressed", String(b.dataset.v === sel[campo]));
+  });
+}
+teclas("tickers", TICKERS, "", "tk");
+teclas("estrategias", ESTRATEGIAS, "est", "est");
+
+g("otroTk").oninput = function(){
+  this.value = this.value.trim().toUpperCase();
+  sel.tk = this.value;
+  marcar("tickers", "tk"); resumen();
+};
+
+function resumen(){
+  var listo = sel.tk && sel.est;
+  g("resumen").innerHTML = listo ? "Vas a anotar <b>"+sel.tk+"</b> con <b>"+sel.est+"</b>."
+                         : !sel.tk ? "Elige el ticker." : "Elige la estrategia.";
+  var b = g("guardar");
+  b.disabled = !listo;
+  b.className = listo ? "guardar listo" : "guardar";
+  b.textContent = listo ? "Anotar " + sel.tk : "Anotar";
+}
+
+function avisar(txt, bien){
+  var a = g("aviso");
+  a.textContent = txt;
+  a.className = "aviso on " + (bien ? "bien" : "mal");
+  clearTimeout(avisar.t);
+  avisar.t = setTimeout(function(){ a.className = "aviso"; }, 3000);
+}
+
+var M = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
+function reloj(d){
+  var h = d.getHours(), m = d.getMinutes(), ap = h < 12 ? "am" : "pm", h12 = h % 12 || 12;
+  return h12 + ":" + (m < 10 ? "0" : "") + m + " " + ap;
+}
+var esc = function(s){ return String(s).replace(/[<>&]/g, function(c){
+  return {"<":"&lt;", ">":"&gt;", "&":"&amp;"}[c]; }); };
+
+function pintar(){
+  g("lista").innerHTML = datos.map(function(r, i){
+    var d = new Date(r.ts);
+    return '<li><span class="cuando">'+d.getDate()+' '+M[d.getMonth()]+'<br>'+reloj(d)+'</span>'
+      + '<span class="qq"><span class="tk">'+esc(r.tk)+'</span> <span class="es">'+esc(r.est)+'</span>'
+      + (r.nota ? '<span class="nt">'+esc(r.nota)+'</span>' : '')
+      + '</span><button class="borrar" type="button" data-i="'+i+'" title="Borrar">×</button></li>';
+  }).join("");
+  Array.prototype.forEach.call(g("lista").querySelectorAll(".borrar"), function(b){
+    b.onclick = function(){
+      datos.splice(+b.dataset.i, 1);
+      if(guardar()) pintar();
+    };
+  });
+  g("sinnada").style.display = datos.length ? "none" : "";
+  g("cuenta").textContent = datos.length ? "Anotadas · " + datos.length : "Anotadas";
+}
+
+g("guardar").onclick = function(){
+  if(!sel.tk || !sel.est) return;
+  datos.unshift({ts: Date.now(), tk: sel.tk, est: sel.est, nota: g("nota").value.trim()});
+  if(!guardar()){ datos.shift(); return; }
+  avisar("Anotado: " + sel.tk + " · " + sel.est, true);
+  sel.tk = ""; sel.est = ""; g("otroTk").value = ""; g("nota").value = "";
+  marcar("tickers","tk"); marcar("estrategias","est");
+  resumen(); pintar();
+};
+
+// ------------------------------------------------------------- exportar
+function iso(ts){
+  var d = new Date(ts), p = function(n){ return (n<10?"0":"")+n; };
+  return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes());
+}
+g("exportar").onclick = function(){
+  if(!datos.length){ avisar("No hay nada que enviar todavía.", false); return; }
+  var txt = datos.slice().sort(function(a,b){ return a.ts - b.ts; })
+    .map(function(r){ return iso(r.ts)+"  "+r.tk+"  "+r.est+(r.nota ? "  — "+r.nota : ""); })
+    .join("\n");
+  g("dlgTxt").value = txt;
+  g("dlgN").textContent = datos.length;
+  g("dlg").showModal();
+};
+g("dlgCopiar").onclick = async function(){
+  var t = g("dlgTxt");
+  t.select(); t.setSelectionRange(0, 999999);
+  try{
+    await navigator.clipboard.writeText(t.value);
+    this.textContent = "Copiado ✓";
+  }catch(e){
+    document.execCommand("copy");
+    this.textContent = "Seleccionado — copia con el teclado";
+  }
+  var b = this;
+  setTimeout(function(){ b.textContent = "Copiar"; }, 2400);
+};
+g("dlgCerrar").onclick = function(){ g("dlg").close(); };
+g("dlgBorrar").onclick = function(){
+  if(!confirm("¿Borrar las " + datos.length + " anotaciones de este teléfono?")) return;
+  datos = [];
+  guardar(); pintar(); g("dlg").close();
+};
+
+cargar(); pintar(); resumen();
+
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").catch(function(){});
+}
+})();
+</script>
+</body>
+</html>
