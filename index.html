@@ -152,11 +152,6 @@ svg{display:block;width:100%;height:auto;overflow:visible}
     <span class="pista" id="pistaPeriodo"></span>
   </div>
   <div class="fila">
-    <span class="etiq">Plazo</span>
-    <div class="chips" id="chipsPlazo"></div>
-    <span class="pista" id="pistaPlazo"></span>
-  </div>
-  <div class="fila">
     <span class="etiq">Tipo</span>
     <div class="chips" id="chipsCP"></div>
     <span class="pista" id="pistaCP"></span>
@@ -168,6 +163,7 @@ svg{display:block;width:100%;height:auto;overflow:visible}
   <label>Subyacente <select id="fTk"></select></label>
   <label>Año <select id="fAno"></select></label>
   <label>Mes <select id="fMes"></select></label>
+  <label>Plazo <select id="fPlazo"></select></label>
   <label>Cierre <select id="fCierre">
     <option value="">todos</option>
     <option value="v">vendidas</option>
@@ -252,7 +248,7 @@ const D={"c":[{"f":"2026-06-09","h":"12:49","t":"SOFI","cp":"C","k":20,"v":"2026
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v10 · 18 ago 2026";
+var VERSION = "v11 · 18 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -288,11 +284,11 @@ function grupo(o){
 //  Los tres cortes que mas se comparan van como botones y no como listas:
 //  se pueden encender varios a la vez, o apagar los que estorben. Cada fila
 //  guarda el conjunto de los ENCENDIDOS; con todos encendidos no filtra.
-var F = {periodo:null, plazo:null, cp:null, est:"", tk:"", ano:"", mes:"", cierre:""};
+var F = {periodo:null, cp:null, plazo:"", est:"", tk:"", ano:"", mes:"", cierre:""};
 
 function pasa(o){
   if(F.periodo && !F.periodo[grupo(o)]) return false;
-  if(F.plazo   && !F.plazo[o.tp]) return false;
+  if(F.plazo   && o.tp !== F.plazo) return false;
   if(F.cp      && !F.cp[o.cp]) return false;
   if(F.est     && (o.e||"(sin etiqueta)") !== F.est) return false;
   if(F.tk      && o.t !== F.tk) return false;
@@ -354,20 +350,16 @@ function reiniciar(campo, valores){
 
 var VAL_PERIODO = ["Seminario 1", "Seminario 2", "0DTE", PROPIO, "(sin clasificar)"]
   .filter(function(v){ return C.some(function(o){ return grupo(o) === v; }); });
-var VAL_PLAZO = uniq(C.map(function(o){ return o.tp; }));
 var VAL_CP = ["C", "P"].filter(function(v){ return C.some(function(o){ return o.cp === v; }); });
 var CP_ROTULO = function(v){ return v === "C" ? "Call" : "Put"; };
 
 reiniciar("periodo", VAL_PERIODO);
-reiniciar("plazo",   VAL_PLAZO);
 reiniciar("cp",      VAL_CP);
 
 var pintaPeriodo = botonera("chipsPeriodo", "pistaPeriodo", VAL_PERIODO, grupo, "periodo", null);
-var pintaPlazo   = botonera("chipsPlazo",   "pistaPlazo",   VAL_PLAZO,
-                            function(o){ return o.tp; }, "plazo", null);
 var pintaCP      = botonera("chipsCP",      "pistaCP",      VAL_CP,
                             function(o){ return o.cp; }, "cp", CP_ROTULO);
-function pintarBotoneras(){ pintaPeriodo(); pintaPlazo(); pintaCP(); }
+function pintarBotoneras(){ pintaPeriodo(); pintaCP(); }
 
 // ---------------------------------------------------------------- selectores
 function llenar(sel, valores, etiqueta, todos){
@@ -377,15 +369,16 @@ function llenar(sel, valores, etiqueta, todos){
 }
 
 
+llenar("fPlazo", uniq(C.map(function(o){return o.tp;})), null, "todos");
 llenar("fEst",  uniq(C.map(function(o){return o.e||"(sin etiqueta)";})), null, "todas");
 llenar("fTk",   uniq(C.map(function(o){return o.t;})), null, "todos");
 llenar("fAno",  uniq(C.map(function(o){return o.f.slice(0,4);})), null, "todos");
 llenar("fMes",  uniq(C.map(function(o){return o.f.slice(0,7);})), mesTxt, "todos");
 
-var FILTROS = ["fEst","fTk","fAno","fMes","fCierre"];
+var FILTROS = ["fPlazo","fEst","fTk","fAno","fMes","fCierre"];
 FILTROS.forEach(function(id){
   g(id).onchange = function(){
-    F.est = g("fEst").value; F.tk = g("fTk").value;
+    F.plazo = g("fPlazo").value; F.est = g("fEst").value; F.tk = g("fTk").value;
     F.ano = g("fAno").value; F.mes = g("fMes").value; F.cierre = g("fCierre").value;
     //  El mes vive dentro de un ano: si se elige un ano, la lista de meses
     //  se recorta a los suyos, y un mes de otro ano se descarta en vez de
@@ -395,10 +388,9 @@ FILTROS.forEach(function(id){
   };
 });
 g("limpiar").onclick = function(){
-  F.est = ""; F.tk = ""; F.ano = ""; F.mes = ""; F.cierre = "";
+  F.plazo = ""; F.est = ""; F.tk = ""; F.ano = ""; F.mes = ""; F.cierre = "";
   reiniciar("periodo", VAL_PERIODO);
-  reiniciar("plazo",   VAL_PLAZO);
-  reiniciar("cp",      VAL_CP);
+    reiniciar("cp",      VAL_CP);
   pintarBotoneras();
   FILTROS.forEach(function(i){ g(i).value = ""; });
   ajustarMeses();
