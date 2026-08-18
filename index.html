@@ -120,6 +120,8 @@ tbody tr:hover td{background:var(--hundido)}
 
 svg{display:block;width:100%;height:auto;overflow:visible}
 .eje{fill:var(--tinta3);font-size:9.5px}
+.valor{font-size:9px;font-weight:640;font-variant-numeric:tabular-nums;
+  font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
 .rej{stroke:var(--rejilla);stroke-width:1}
 .cero{stroke:var(--cero);stroke-width:1.5}
 .barmes{cursor:pointer}
@@ -250,12 +252,20 @@ const D={"c":[{"f":"2026-06-09","h":"12:49","t":"SOFI","cp":"C","k":20,"v":"2026
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v8 · 18 ago 2026";
+var VERSION = "v9 · 18 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
           {minimumFractionDigits:d,maximumFractionDigits:d}); };
 var pct = function(n){ return n==null?"—":n.toFixed(0)+"%"; };
+//  Etiqueta sobre la barra: el monto completo no cabe con 15 meses en
+//  media pantalla, asi que arriba de mil se abrevia en miles.
+var corto = function(n){
+  var s = n < 0 ? "−" : "";
+  var a = Math.abs(n);
+  if(a >= 1000) return s + "$" + (a/1000).toFixed(1) + "k";
+  return s + "$" + Math.round(a);
+};
 var mesTxt = function(k){ return MESES[+k.slice(5)-1]+" "+k.slice(2,4); };
 var uniq = function(arr){ return Array.from(new Set(arr)).filter(Boolean).sort(); };
 
@@ -447,7 +457,7 @@ function grafMes(){
   var ks = Object.keys(m).sort();
   if(!ks.length){ g("grafMes").innerHTML = '<p class="vacio">Nada con estos filtros.</p>'; return; }
 
-  var W = 560, H = 220, PL = 52, PR = 6, PT = 12, PB = 26;
+  var W = 560, H = 232, PL = 52, PR = 6, PT = 20, PB = 30;
   var iw = W-PL-PR, ih = H-PT-PB;
   var vals = ks.map(function(k){ return m[k]; });
   var max = Math.max.apply(null, vals.concat([0])), min = Math.min.apply(null, vals.concat([0]));
@@ -476,6 +486,8 @@ function grafMes(){
        + '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+
          '" height="'+Math.max(alto,1).toFixed(1)+'" rx="'+r.toFixed(1)+'" fill="'+col+'"/>'
        + '<rect x="'+x.toFixed(1)+'" y="'+PT+'" width="'+bw.toFixed(1)+'" height="'+ih+'" fill="transparent"/>'
+       + '<text class="valor" x="'+(x+bw/2).toFixed(1)+'" y="'+(v>=0 ? (y-4).toFixed(1) : (y+alto+9).toFixed(1))+
+         '" text-anchor="middle" fill="'+col+'">'+corto(v)+'</text>'
        + '</g>';
     if(ks.length <= 8 || i%2===0)
       s += '<text class="eje" x="'+(x+bw/2).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle">'+mesTxt(k)+'</text>';
