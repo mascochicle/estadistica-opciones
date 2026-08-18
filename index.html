@@ -72,6 +72,21 @@ button.limpiar{background:transparent;border:1px solid var(--linea2);color:var(-
   border-radius:8px;padding:5px 12px;font:inherit;font-size:12.5px;cursor:pointer;margin-left:auto}
 button.limpiar:hover{border-color:var(--tinta3);color:var(--tinta)}
 
+.grupos{display:flex;gap:11px;align-items:center;flex-wrap:wrap;background:var(--panel);
+  border:1px solid var(--linea);border-radius:12px;padding:11px 13px}
+.grupos .etiq{font-size:11px;color:var(--tinta3);text-transform:uppercase;letter-spacing:.05em;font-weight:640}
+.grupos .pista{font-size:11.5px;color:var(--tinta3);margin-left:auto}
+.chips{display:flex;gap:7px;flex-wrap:wrap}
+.chip{font:inherit;font-size:12.5px;padding:5px 12px;border-radius:999px;cursor:pointer;
+  border:1px solid var(--linea2);background:var(--panel);color:var(--tinta3);
+  display:flex;align-items:center;gap:6px;transition:background .12s,border-color .12s,color .12s}
+.chip:hover{border-color:var(--tinta3);color:var(--tinta)}
+.chip .marca{width:13px;height:13px;border-radius:3px;border:1.5px solid currentColor;
+  display:inline-grid;place-items:center;font-size:9px;line-height:1;flex:none}
+.chip[aria-pressed="true"]{background:var(--acento-bg);border-color:var(--acento);color:var(--acento);font-weight:620}
+.chip[aria-pressed="true"] .marca{background:var(--acento);border-color:var(--acento);color:var(--panel)}
+.chip:focus-visible{outline:2px solid var(--acento);outline-offset:2px}
+
 .tarjeta{background:var(--panel);border:1px solid var(--linea);border-radius:12px;
   padding:15px 17px 17px;box-shadow:var(--sombra)}
 .tarjeta h2{font-size:14px;font-weight:660;margin:0 0 2px;letter-spacing:-.01em}
@@ -123,8 +138,13 @@ svg{display:block;width:100%;height:auto;overflow:visible}
 
 <div class="kpis" id="kpis"></div>
 
+<div class="grupos" id="grupos">
+  <span class="etiq">Grupo</span>
+  <div class="chips" id="chipsGrupo"></div>
+  <span class="pista" id="pistaGrupo"></span>
+</div>
+
 <div class="filtros">
-  <label>Grupo <select id="fGrupo"></select></label>
   <label>Vencimiento <select id="fTipo"></select></label>
   <label>Estrategia <select id="fEst"></select></label>
   <label>Subyacente <select id="fTk"></select></label>
@@ -219,7 +239,7 @@ const D={"c":[{"f":"2026-06-09","h":"12:49","t":"SOFI","cp":"C","k":20,"v":"2026
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v6 · 18 ago 2026";
+var VERSION = "v7 · 18 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -243,10 +263,14 @@ function grupo(o){
   return o.f < SEM2 ? "Seminario 1" : "Seminario 2";
 }
 
-var F = {grupo:"", tipo:"", est:"", tk:"", ano:"", mes:"", cp:"", cierre:""};
+//  El grupo es el corte mas importante, asi que va como botones y no como
+//  lista: se pueden encender varios a la vez, o apagar los que estorben.
+//  Se guarda el conjunto de los ENCENDIDOS; con todos encendidos no filtra.
+var GRUPOS = [];
+var F = {grupos: null, tipo:"", est:"", tk:"", ano:"", mes:"", cp:"", cierre:""};
 
 function pasa(o){
-  if(F.grupo  && grupo(o) !== F.grupo) return false;
+  if(F.grupos && !F.grupos[grupo(o)]) return false;
   if(F.tipo   && o.tp !== F.tipo) return false;
   if(F.est    && (o.e||"(sin etiqueta)") !== F.est) return false;
   if(F.tk     && o.t !== F.tk) return false;
@@ -267,19 +291,50 @@ function llenar(sel, valores, etiqueta, todos){
 }
 var uniq = function(arr){ return Array.from(new Set(arr)).filter(Boolean).sort(); };
 
-llenar("fGrupo", ["Seminario 1", "Seminario 2", "0DTE", PROPIO, "(sin clasificar)"].filter(function(v){
+GRUPOS = ["Seminario 1", "Seminario 2", "0DTE", PROPIO, "(sin clasificar)"].filter(function(v){
   return C.some(function(o){ return grupo(o) === v; });
-}), null, "todos");
+});
+function encendidos(){
+  var n = 0;
+  GRUPOS.forEach(function(v){ if(F.grupos[v]) n++; });
+  return n;
+}
+function pintarGrupos(){
+  var cont = new Map();
+  C.forEach(function(o){ var k = grupo(o); cont.set(k, (cont.get(k)||0)+1); });
+  g("chipsGrupo").innerHTML = GRUPOS.map(function(v){
+    var on = F.grupos[v];
+    return '<button class="chip" type="button" aria-pressed="'+on+'" data-v="'+v+'">'
+         + '<span class="marca">'+(on?"✓":"")+'</span>'+v
+         + ' <span style="opacity:.65">'+(cont.get(v)||0)+'</span></button>';
+  }).join("");
+  Array.prototype.forEach.call(g("chipsGrupo").querySelectorAll(".chip"), function(b){
+    b.onclick = function(){
+      var v = b.dataset.v;
+      //  Siempre tiene que quedar al menos uno: apagar el ultimo dejaria la
+      //  pantalla en blanco sin que se entienda por que.
+      if(F.grupos[v] && encendidos() === 1) return;
+      F.grupos[v] = !F.grupos[v];
+      pintarGrupos(); pintar();
+    };
+  });
+  var n = encendidos();
+  g("pistaGrupo").textContent = n === GRUPOS.length
+    ? "todos · clic para quitar los que no quieras comparar"
+    : n + " de " + GRUPOS.length + " · clic para agregar o quitar";
+}
+F.grupos = {};
+GRUPOS.forEach(function(v){ F.grupos[v] = true; });
 llenar("fTipo", uniq(C.map(function(o){return o.tp;})), null, "todos");
 llenar("fEst",  uniq(C.map(function(o){return o.e||"(sin etiqueta)";})), null, "todas");
 llenar("fTk",   uniq(C.map(function(o){return o.t;})), null, "todos");
 llenar("fAno",  uniq(C.map(function(o){return o.f.slice(0,4);})), null, "todos");
 llenar("fMes",  uniq(C.map(function(o){return o.f.slice(0,7);})), mesTxt, "todos");
 
-var FILTROS = ["fGrupo","fTipo","fEst","fTk","fAno","fMes","fCP","fCierre"];
+var FILTROS = ["fTipo","fEst","fTk","fAno","fMes","fCP","fCierre"];
 FILTROS.forEach(function(id){
   g(id).onchange = function(){
-    F.grupo = g("fGrupo").value; F.tipo = g("fTipo").value; F.est = g("fEst").value;
+    F.tipo = g("fTipo").value; F.est = g("fEst").value;
     F.tk = g("fTk").value; F.ano = g("fAno").value; F.mes = g("fMes").value;
     F.cp = g("fCP").value; F.cierre = g("fCierre").value;
     //  El mes vive dentro de un ano: si se elige un ano, la lista de meses
@@ -290,7 +345,9 @@ FILTROS.forEach(function(id){
   };
 });
 g("limpiar").onclick = function(){
-  F = {grupo:"",tipo:"",est:"",tk:"",ano:"",mes:"",cp:"",cierre:""};
+  F = {grupos:{}, tipo:"",est:"",tk:"",ano:"",mes:"",cp:"",cierre:""};
+  GRUPOS.forEach(function(v){ F.grupos[v] = true; });
+  pintarGrupos();
   FILTROS.forEach(function(i){ g(i).value = ""; });
   ajustarMeses();
   pintar();
@@ -597,6 +654,7 @@ g("pie").innerHTML = "Los datos salen de los extractos de actividad de IBKR y de
   + "<br>El <b>plazo</b> son los días comprados al abrir, no los que quedaban al cerrar. "
   + "El resultado ya viene neto de comisiones, tal como lo reporta IBKR.";
 
+pintarGrupos();
 g("ver").textContent = VERSION;
 
 pintar();
