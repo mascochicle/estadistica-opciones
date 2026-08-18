@@ -218,32 +218,31 @@ function abrir(){
     q.onerror = function(){ mal(q.error); };
   });
 }
-function tx(modo){ return db.transaction("notas", modo).objectStore("notas"); }
 function todas(){
   return new Promise(function(ok, mal){
-    var q = tx("readonly").getAll();
+    var q = db.transaction("notas", "readonly").objectStore("notas").getAll();
     q.onsuccess = function(){ ok(q.result || []); };
     q.onerror = function(){ mal(q.error); };
   });
 }
-function poner(r){
+
+//  Al escribir hay que esperar a que se confirme la TRANSACCION, no a que
+//  responda la peticion. Son dos momentos distintos: la peticion dice
+//  "recibido" y la transaccion dice "escrito". Si la app se cierra en ese
+//  hueco, el dato se pierde — y con una imagen adentro el hueco es mayor,
+//  porque el archivo tarda mas en bajar a disco.
+function escribir(accion){
   return new Promise(function(ok, mal){
-    var q = tx("readwrite").put(r);
-    q.onsuccess = function(){ ok(); }; q.onerror = function(){ mal(q.error); };
+    var t = db.transaction("notas", "readwrite");
+    accion(t.objectStore("notas"));
+    t.oncomplete = function(){ ok(); };
+    t.onerror = function(){ mal(t.error); };
+    t.onabort = function(){ mal(t.error || new Error("transacción abortada")); };
   });
 }
-function quitar(ts){
-  return new Promise(function(ok, mal){
-    var q = tx("readwrite").delete(ts);
-    q.onsuccess = function(){ ok(); }; q.onerror = function(){ mal(q.error); };
-  });
-}
-function vaciar(){
-  return new Promise(function(ok, mal){
-    var q = tx("readwrite").clear();
-    q.onsuccess = function(){ ok(); }; q.onerror = function(){ mal(q.error); };
-  });
-}
+function poner(r){   return escribir(function(s){ s.put(r); }); }
+function quitar(ts){ return escribir(function(s){ s.delete(ts); }); }
+function vaciar(){   return escribir(function(s){ s.clear(); }); }
 async function migrar(){
   var viejo = null;
   try{ viejo = JSON.parse(localStorage.getItem(LLAVE_VIEJA)); }catch(e){}
