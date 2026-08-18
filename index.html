@@ -252,7 +252,7 @@ const D={"c":[{"f":"2026-06-09","h":"12:49","t":"SOFI","cp":"C","k":20,"v":"2026
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v9 · 18 ago 2026";
+var VERSION = "v10 · 18 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -329,19 +329,20 @@ function botonera(destino, pista, valores, clave, campo, rotulo){
     Array.prototype.forEach.call(g(destino).querySelectorAll(".chip"), function(b){
       b.onclick = function(){
         if(b.dataset.todos){
-          valores.forEach(function(v){ F[campo][v] = true; });
+          //  Funciona en los dos sentidos: si ya estan todos, los apaga.
+          var prender = cuantos() !== valores.length;
+          valores.forEach(function(v){ F[campo][v] = prender; });
         } else {
-          var v = b.dataset.v;
-          //  Siempre queda al menos uno: apagar el ultimo dejaria la
-          //  pantalla vacia sin que se entienda por que.
-          if(F[campo][v] && cuantos() === 1) return;
-          F[campo][v] = !F[campo][v];
+          F[campo][b.dataset.v] = !F[campo][b.dataset.v];
         }
         repintar(); pintar();
       };
     });
     var n = cuantos();
-    g(pista).textContent = n === valores.length ? "todos" : n + " de " + valores.length;
+    g(pista).textContent = n === 0 ? "ninguno"
+                         : n === valores.length ? "todos"
+                         : n + " de " + valores.length;
+    g(pista).style.color = n === 0 ? "var(--pierde)" : "";
   }
   return repintar;
 }
@@ -428,6 +429,13 @@ var ocultaTip = function(){ tip.className = "tip"; };
 function kpis(){
   var v = vis();
   var n = v.length;
+  if(!n){
+    g("kpis").innerHTML = '<div class="kpi" style="grid-column:1/-1">'
+      + '<span class="k">Sin resultados</span>'
+      + '<span class="v mut">0</span>'
+      + '<span class="s">Ningún filtro deja pasar operaciones. Enciende algo arriba o dale a Limpiar filtros.</span></div>';
+    return;
+  }
   var pnl = v.reduce(function(a,o){return a+o.g;},0);
   var gan = v.filter(function(o){return o.g>0;});
   var exp = v.filter(function(o){return o.x;});
