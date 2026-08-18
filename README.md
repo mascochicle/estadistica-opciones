@@ -8,9 +8,10 @@ seguimiento. Los datos van dentro del propio archivo.
 
 ## Qué muestra
 
-561 operaciones cerradas, repartidas en tres formas de operar distintas:
+561 operaciones cerradas, repartidas en cuatro formas de operar distintas:
 
-- **Seminario** — método aprendido en un curso de opciones
+- **Seminario 1** — primera parte del curso, abril 2025
+- **Seminario 2** — segunda parte, agosto 2025; entre una y otra hay dos meses sin operar
 - **0DTE** — opciones que vencen el mismo día, sobre SPX y SPY
 - **Método propio** — criterio propio, mezcla de lo anterior con análisis técnico
 

@@ -178,9 +178,9 @@ svg{display:block;width:100%;height:auto;overflow:visible}
   </div>
   <div class="tarjeta">
     <h2>Por grupo, y vendidas contra expiradas</h2>
-    <p class="nota">Tres formas de operar distintas: el método del seminario, el 0DTE y lo que
-    hiciste por tu cuenta. Abajo, cuánto pesa dejar expirar &mdash; una opción que expira sin
-    valor pierde el 100% de la prima.</p>
+    <p class="nota">El curso tuvo dos partes &mdash; abril y agosto de 2025 &mdash; y separarlas
+    importa, porque los resultados no se parecen. Abajo, cuánto pesa dejar expirar: una opción
+    que expira sin valor pierde el 100% de la prima.</p>
     <div id="grafCierre"></div>
     <div class="scroll" style="margin-top:12px"><table><thead><tr id="hCierre"></tr></thead><tbody id="bCierre"></tbody></table></div>
   </div>
@@ -210,7 +210,7 @@ const D={"c":[{"f":"2026-06-09","h":"12:49","t":"SOFI","cp":"C","k":20,"v":"2026
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v3 · 18 ago 2026";
+var VERSION = "v4 · 18 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -218,15 +218,20 @@ var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocal
 var pct = function(n){ return n==null?"—":n.toFixed(0)+"%"; };
 var mesTxt = function(k){ return MESES[+k.slice(5)-1]+" "+k.slice(2,4); };
 
-// El grupo sale de la propia etiqueta que puso Marco, no de reglas de
-// fecha: "0DTE" y "Metodo propio" son grupos en si mismos, y cualquier
-// otra estrategia del curso cae en Seminario.
+// El grupo sale de la propia etiqueta anotada, no de reglas de fecha:
+// "0DTE" y "Metodo propio" son grupos en si mismos, y cualquier otra
+// estrategia del curso cae en Seminario.
+//
+// El curso tuvo DOS partes, y separarlas importa: la primera fue en
+// abril de 2025 y la segunda del 20 al 24 de agosto. Entre una y otra
+// hay dos meses sin operar. Los resultados de cada etapa no se parecen.
 var PROPIO = "Método propio";
+var SEM2 = "2025-08-20";                 // primer dia del Seminario 2
 function grupo(o){
   if(!o.e) return "(sin clasificar)";
   if(o.e === "0DTE") return "0DTE";
   if(o.e === PROPIO) return PROPIO;
-  return "Seminario";
+  return o.f < SEM2 ? "Seminario 1" : "Seminario 2";
 }
 
 var F = {grupo:"", tipo:"", est:"", tk:"", mes:"", cierre:""};
@@ -251,7 +256,7 @@ function llenar(sel, valores, etiqueta, todos){
 }
 var uniq = function(arr){ return Array.from(new Set(arr)).filter(Boolean).sort(); };
 
-llenar("fGrupo", ["Seminario", "0DTE", PROPIO, "(sin clasificar)"].filter(function(v){
+llenar("fGrupo", ["Seminario 1", "Seminario 2", "0DTE", PROPIO, "(sin clasificar)"].filter(function(v){
   return C.some(function(o){ return grupo(o) === v; });
 }), null, "todos");
 llenar("fTipo", uniq(C.map(function(o){return o.tp;})), null, "todos");
