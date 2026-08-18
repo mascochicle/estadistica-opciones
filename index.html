@@ -81,6 +81,7 @@ button.limpiar:hover{border-color:var(--tinta3);color:var(--tinta)}
   font-weight:640;min-width:58px}
 .botonera .pista{font-size:11.5px;color:var(--tinta3);margin-left:auto}
 .chip.todos{border-style:dashed}
+.chip.uno .marca{border-radius:50%}
 .chips{display:flex;gap:7px;flex-wrap:wrap}
 .chip{font:inherit;font-size:12.5px;padding:5px 12px;border-radius:999px;cursor:pointer;
   border:1px solid var(--linea2);background:var(--panel);color:var(--tinta3);
@@ -248,7 +249,7 @@ const D={"c":[{"f":"2026-06-09","h":"12:49","t":"SOFI","cp":"C","k":20,"v":"2026
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v11 · 18 ago 2026";
+var VERSION = "v12 · 18 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -302,7 +303,10 @@ var vis = function(){ return C.filter(pasa); };
 
 // ---------------------------------------------------------------- botoneras
 //  Una botonera por corte. Devuelve una funcion que la repinta.
-function botonera(destino, pista, valores, clave, campo, rotulo){
+//  exclusivo = los valores no se pueden combinar: o todos, o uno solo.
+//  Es el caso del periodo: son etapas distintas de la cuenta y juntar dos
+//  no responde ninguna pregunta.
+function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo){
   function cuantos(){
     var n = 0;
     valores.forEach(function(v){ if(F[campo][v]) n++; });
@@ -312,11 +316,12 @@ function botonera(destino, pista, valores, clave, campo, rotulo){
     var cont = new Map();
     C.forEach(function(o){ var k = clave(o); cont.set(k, (cont.get(k)||0)+1); });
     var todos = cuantos() === valores.length;
-    var html = '<button class="chip todos" type="button" aria-pressed="'+todos+'" data-todos="1">'
+    var cls = exclusivo ? "chip uno" : "chip";
+    var html = '<button class="'+cls+' todos" type="button" aria-pressed="'+todos+'" data-todos="1">'
              + '<span class="marca">'+(todos?"✓":"")+'</span>todos</button>';
     html += valores.map(function(v){
       var on = F[campo][v];
-      return '<button class="chip" type="button" aria-pressed="'+on+'" data-v="'+v+'">'
+      return '<button class="'+cls+'" type="button" aria-pressed="'+on+'" data-v="'+v+'">'
            + '<span class="marca">'+(on?"✓":"")+'</span>'+(rotulo?rotulo(v):v)
            + ' <span style="opacity:.65">'+(cont.get(v)||0)+'</span></button>';
     }).join("");
@@ -325,9 +330,16 @@ function botonera(destino, pista, valores, clave, campo, rotulo){
     Array.prototype.forEach.call(g(destino).querySelectorAll(".chip"), function(b){
       b.onclick = function(){
         if(b.dataset.todos){
-          //  Funciona en los dos sentidos: si ya estan todos, los apaga.
-          var prender = cuantos() !== valores.length;
+          //  En los combinables funciona en los dos sentidos; en los
+          //  exclusivos solo enciende, porque cero no es un estado util ahi.
+          var prender = exclusivo || cuantos() !== valores.length;
           valores.forEach(function(v){ F[campo][v] = prender; });
+        } else if(exclusivo){
+          var v = b.dataset.v;
+          var solo = F[campo][v] && cuantos() === 1;
+          //  Volver a picar el que ya estaba solo regresa a "todos", para
+          //  poder deshacer sin ir a buscar el boton.
+          valores.forEach(function(x){ F[campo][x] = solo ? true : (x === v); });
         } else {
           F[campo][b.dataset.v] = !F[campo][b.dataset.v];
         }
@@ -337,6 +349,7 @@ function botonera(destino, pista, valores, clave, campo, rotulo){
     var n = cuantos();
     g(pista).textContent = n === 0 ? "ninguno"
                          : n === valores.length ? "todos"
+                         : exclusivo ? "solo uno"
                          : n + " de " + valores.length;
     g(pista).style.color = n === 0 ? "var(--pierde)" : "";
   }
@@ -356,9 +369,9 @@ var CP_ROTULO = function(v){ return v === "C" ? "Call" : "Put"; };
 reiniciar("periodo", VAL_PERIODO);
 reiniciar("cp",      VAL_CP);
 
-var pintaPeriodo = botonera("chipsPeriodo", "pistaPeriodo", VAL_PERIODO, grupo, "periodo", null);
+var pintaPeriodo = botonera("chipsPeriodo", "pistaPeriodo", VAL_PERIODO, grupo, "periodo", null, true);
 var pintaCP      = botonera("chipsCP",      "pistaCP",      VAL_CP,
-                            function(o){ return o.cp; }, "cp", CP_ROTULO);
+                            function(o){ return o.cp; }, "cp", CP_ROTULO, true);
 function pintarBotoneras(){ pintaPeriodo(); pintaCP(); }
 
 // ---------------------------------------------------------------- selectores
