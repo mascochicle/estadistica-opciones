@@ -213,18 +213,23 @@ var datos = [];
 //  impone. Las anotaciones viejas de localStorage se migran solas.
 // =====================================================================
 var db = null;
-function abrir(){
-  return new Promise(function(ok, mal){
-    var q = indexedDB.open("captura", 1);
-    q.onupgradeneeded = function(){
-      var d = q.result;
-      if(!d.objectStoreNames.contains("notas")) d.createObjectStore("notas", {keyPath:"ts"});
-    };
-    q.onsuccess = function(){ db = q.result; ok(db); };
-    q.onerror = function(){ mal(q.error); };
-  });
-}
-function todas(){
+
+//  Se guarda la PROMESA de apertura, no solo la base. Toda operacion la
+//  espera antes de tocar nada: asi una anotacion hecha en el primer
+//  segundo —antes de que la base abra— tambien se guarda, en vez de
+//  reventar con "db es null" y perderse.
+var listo = new Promise(function(ok, mal){
+  var q = indexedDB.open("captura", 1);
+  q.onupgradeneeded = function(){
+    var d = q.result;
+    if(!d.objectStoreNames.contains("notas")) d.createObjectStore("notas", {keyPath:"ts"});
+  };
+  q.onsuccess = function(){ db = q.result; ok(db); };
+  q.onerror   = function(){ mal(q.error); };
+  q.onblocked = function(){ mal(new Error("hay otra pestaña de la app abierta")); };
+});
+async function todas(){
+  await listo;
   return new Promise(function(ok, mal){
     var q = db.transaction("notas", "readonly").objectStore("notas").getAll();
     q.onsuccess = function(){ ok(q.result || []); };
@@ -237,7 +242,8 @@ function todas(){
 //  "recibido" y la transaccion dice "escrito". Si la app se cierra en ese
 //  hueco, el dato se pierde — y con una imagen adentro el hueco es mayor,
 //  porque el archivo tarda mas en bajar a disco.
-function escribir(accion){
+async function escribir(accion){
+  await listo;
   return new Promise(function(ok, mal){
     var t = db.transaction("notas", "readwrite");
     accion(t.objectStore("notas"));
@@ -453,7 +459,7 @@ g("dlgBorrar").onclick = async function(){
 // ------------------------------------------------------------- arranque
 (async function(){
   try{
-    await abrir();
+    await listo;
     await migrar();
     datos = await todas();
   }catch(e){
