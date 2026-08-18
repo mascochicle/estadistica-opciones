@@ -129,6 +129,11 @@ svg{display:block;width:100%;height:auto;overflow:visible}
   <label>Estrategia <select id="fEst"></select></label>
   <label>Subyacente <select id="fTk"></select></label>
   <label>Periodo <select id="fMes"></select></label>
+  <label>Tipo <select id="fCP">
+    <option value="">todos</option>
+    <option value="C">solo calls</option>
+    <option value="P">solo puts</option>
+  </select></label>
   <label>Cierre <select id="fCierre">
     <option value="">todos</option>
     <option value="v">vendidas</option>
@@ -174,7 +179,10 @@ svg{display:block;width:100%;height:auto;overflow:visible}
   <div class="tarjeta">
     <h2>Por subyacente</h2>
     <p class="nota">Solo los que tienen 3 operaciones o más.</p>
-    <div class="scroll"><table><thead><tr id="hTk"></tr></thead><tbody id="bTk"></tbody></table></div>
+    <div class="scroll" style="max-height:300px"><table><thead><tr id="hTk"></tr></thead><tbody id="bTk"></tbody></table></div>
+    <h2 style="margin-top:18px">Calls contra puts</h2>
+    <p class="nota">Apostar a que sube contra apostar a que baja.</p>
+    <table><thead><tr id="hCP"></tr></thead><tbody id="bCP"></tbody></table>
   </div>
   <div class="tarjeta">
     <h2>Por grupo, y vendidas contra expiradas</h2>
@@ -210,7 +218,7 @@ const D={"c":[{"f":"2026-06-09","h":"12:49","t":"SOFI","cp":"C","k":20,"v":"2026
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v4 · 18 ago 2026";
+var VERSION = "v5 · 18 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -234,7 +242,7 @@ function grupo(o){
   return o.f < SEM2 ? "Seminario 1" : "Seminario 2";
 }
 
-var F = {grupo:"", tipo:"", est:"", tk:"", mes:"", cierre:""};
+var F = {grupo:"", tipo:"", est:"", tk:"", mes:"", cp:"", cierre:""};
 
 function pasa(o){
   if(F.grupo  && grupo(o) !== F.grupo) return false;
@@ -242,6 +250,7 @@ function pasa(o){
   if(F.est    && (o.e||"(sin etiqueta)") !== F.est) return false;
   if(F.tk     && o.t !== F.tk) return false;
   if(F.mes    && o.f.slice(0,7) !== F.mes) return false;
+  if(F.cp     && o.cp !== F.cp) return false;
   if(F.cierre === "x" && !o.x) return false;
   if(F.cierre === "v" && o.x) return false;
   return true;
@@ -264,16 +273,17 @@ llenar("fEst",  uniq(C.map(function(o){return o.e||"(sin etiqueta)";})), null, "
 llenar("fTk",   uniq(C.map(function(o){return o.t;})), null, "todos");
 llenar("fMes",  uniq(C.map(function(o){return o.f.slice(0,7);})), mesTxt, "todo");
 
-var FILTROS = ["fGrupo","fTipo","fEst","fTk","fMes","fCierre"];
+var FILTROS = ["fGrupo","fTipo","fEst","fTk","fMes","fCP","fCierre"];
 FILTROS.forEach(function(id){
   g(id).onchange = function(){
     F.grupo = g("fGrupo").value; F.tipo = g("fTipo").value; F.est = g("fEst").value;
-    F.tk = g("fTk").value; F.mes = g("fMes").value; F.cierre = g("fCierre").value;
+    F.tk = g("fTk").value; F.mes = g("fMes").value;
+    F.cp = g("fCP").value; F.cierre = g("fCierre").value;
     pintar();
   };
 });
 g("limpiar").onclick = function(){
-  F = {grupo:"",tipo:"",est:"",tk:"",mes:"",cierre:""};
+  F = {grupo:"",tipo:"",est:"",tk:"",mes:"",cp:"",cierre:""};
   FILTROS.forEach(function(i){ g(i).value = ""; });
   pintar();
 };
@@ -434,7 +444,7 @@ function grafTk(){
 
 // ---------------------------------------------------------------- tablas
 var ORD = {est:{k:"pnl",d:-1}, tipo:{k:"pnl",d:-1}, tk:{k:"pnl",d:-1},
-           cierre:{k:"pnl",d:-1}, ops:{k:"f",d:-1}};
+           cierre:{k:"pnl",d:-1}, cp:{k:"pnl",d:-1}, ops:{k:"f",d:-1}};
 
 function agrupar(clave){
   var m = new Map();
@@ -551,6 +561,7 @@ function pintar(){
   tabla("Tipo", "Plazo",      agrupar(function(o){return o.tp;}), ORD.tipo);
   tabla("Tk",   "Subyacente", agrupar(function(o){return o.t;}).filter(function(e){return e.n>=3;}), ORD.tk);
   tabla("Cierre","Grupo",     agrupar(grupo), ORD.cierre);
+  tabla("CP",   "Tipo",       agrupar(function(o){ return o.cp==="C" ? "Call" : "Put"; }), ORD.cp);
   grafCierre();
   tablaOps();
 }
