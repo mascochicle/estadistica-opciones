@@ -1,0 +1,33 @@
+# Estadística de Opciones
+
+Tablero de análisis para un registro de operaciones con opciones sobre acciones
+e índices. Página estática: sin dependencias externas, sin conexiones, sin
+seguimiento. Los datos van dentro del propio archivo.
+
+**[Ver el tablero →](https://mascochicle.github.io/estadistica-opciones/)**
+
+## Qué muestra
+
+561 operaciones cerradas, repartidas en tres formas de operar distintas:
+
+- **Seminario** — método aprendido en un curso de opciones
+- **0DTE** — opciones que vencen el mismo día, sobre SPX y SPY
+- **Método propio** — criterio propio, mezcla de lo anterior con análisis técnico
+
+Cortes disponibles: por grupo, por plazo comprado, por estrategia, por
+subyacente, por mes y por tipo de cierre (vendida o expirada sin valor).
+
+## Cómo está hecho
+
+Un solo archivo HTML. Las gráficas son SVG generado en el navegador, sin
+librerías. Funciona igual abierto desde disco que servido por HTTP.
+
+El origen de los datos es un extracto de actividad del bróker, procesado a una
+bitácora en Excel donde se anota la estrategia de cada operación; de ahí sale el
+conjunto de datos que va embebido en la página.
+
+## Aviso
+
+Esto es un ejercicio de análisis de datos. No es asesoría de inversión ni una
+recomendación de ninguna estrategia. Las opciones pueden perder el 100% de su
+valor.
