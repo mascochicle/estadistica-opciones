@@ -128,7 +128,8 @@ svg{display:block;width:100%;height:auto;overflow:visible}
   <label>Vencimiento <select id="fTipo"></select></label>
   <label>Estrategia <select id="fEst"></select></label>
   <label>Subyacente <select id="fTk"></select></label>
-  <label>Periodo <select id="fMes"></select></label>
+  <label>Año <select id="fAno"></select></label>
+  <label>Mes <select id="fMes"></select></label>
   <label>Tipo <select id="fCP">
     <option value="">todos</option>
     <option value="C">solo calls</option>
@@ -218,7 +219,7 @@ const D={"c":[{"f":"2026-06-09","h":"12:49","t":"SOFI","cp":"C","k":20,"v":"2026
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v5 · 18 ago 2026";
+var VERSION = "v6 · 18 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -242,13 +243,14 @@ function grupo(o){
   return o.f < SEM2 ? "Seminario 1" : "Seminario 2";
 }
 
-var F = {grupo:"", tipo:"", est:"", tk:"", mes:"", cp:"", cierre:""};
+var F = {grupo:"", tipo:"", est:"", tk:"", ano:"", mes:"", cp:"", cierre:""};
 
 function pasa(o){
   if(F.grupo  && grupo(o) !== F.grupo) return false;
   if(F.tipo   && o.tp !== F.tipo) return false;
   if(F.est    && (o.e||"(sin etiqueta)") !== F.est) return false;
   if(F.tk     && o.t !== F.tk) return false;
+  if(F.ano    && o.f.slice(0,4) !== F.ano) return false;
   if(F.mes    && o.f.slice(0,7) !== F.mes) return false;
   if(F.cp     && o.cp !== F.cp) return false;
   if(F.cierre === "x" && !o.x) return false;
@@ -271,22 +273,37 @@ llenar("fGrupo", ["Seminario 1", "Seminario 2", "0DTE", PROPIO, "(sin clasificar
 llenar("fTipo", uniq(C.map(function(o){return o.tp;})), null, "todos");
 llenar("fEst",  uniq(C.map(function(o){return o.e||"(sin etiqueta)";})), null, "todas");
 llenar("fTk",   uniq(C.map(function(o){return o.t;})), null, "todos");
-llenar("fMes",  uniq(C.map(function(o){return o.f.slice(0,7);})), mesTxt, "todo");
+llenar("fAno",  uniq(C.map(function(o){return o.f.slice(0,4);})), null, "todos");
+llenar("fMes",  uniq(C.map(function(o){return o.f.slice(0,7);})), mesTxt, "todos");
 
-var FILTROS = ["fGrupo","fTipo","fEst","fTk","fMes","fCP","fCierre"];
+var FILTROS = ["fGrupo","fTipo","fEst","fTk","fAno","fMes","fCP","fCierre"];
 FILTROS.forEach(function(id){
   g(id).onchange = function(){
     F.grupo = g("fGrupo").value; F.tipo = g("fTipo").value; F.est = g("fEst").value;
-    F.tk = g("fTk").value; F.mes = g("fMes").value;
+    F.tk = g("fTk").value; F.ano = g("fAno").value; F.mes = g("fMes").value;
     F.cp = g("fCP").value; F.cierre = g("fCierre").value;
+    //  El mes vive dentro de un ano: si se elige un ano, la lista de meses
+    //  se recorta a los suyos, y un mes de otro ano se descarta en vez de
+    //  dejar la vista vacia sin explicacion.
+    ajustarMeses();
     pintar();
   };
 });
 g("limpiar").onclick = function(){
-  F = {grupo:"",tipo:"",est:"",tk:"",mes:"",cp:"",cierre:""};
+  F = {grupo:"",tipo:"",est:"",tk:"",ano:"",mes:"",cp:"",cierre:""};
   FILTROS.forEach(function(i){ g(i).value = ""; });
+  ajustarMeses();
   pintar();
 };
+
+function ajustarMeses(){
+  var ms = uniq(C.filter(function(o){ return !F.ano || o.f.slice(0,4)===F.ano; })
+                 .map(function(o){ return o.f.slice(0,7); }));
+  if(F.mes && ms.indexOf(F.mes) < 0) F.mes = "";
+  llenar("fMes", ms, mesTxt, "todos");
+  g("fMes").value = F.mes;
+}
+ajustarMeses();
 
 // ---------------------------------------------------------------- tooltip
 var tip = g("tip");
@@ -377,7 +394,9 @@ function grafMes(){
     });
     el.addEventListener("mouseleave", ocultaTip);
     el.addEventListener("click", function(){
-      F.mes = (F.mes===k) ? "" : k; g("fMes").value = F.mes; ocultaTip(); pintar();
+      if(F.mes === k){ F.mes = ""; }
+      else { F.mes = k; F.ano = k.slice(0,4); g("fAno").value = F.ano; }
+      ajustarMeses(); ocultaTip(); pintar();
     });
   });
 }
