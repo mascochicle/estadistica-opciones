@@ -132,16 +132,22 @@ textarea{width:100%;height:180px;background:var(--fondo);color:var(--tinta2);bor
 <div class="paso">
   <h2><span class="num">3</span> Gráfico <span class="opt">— opcional, pero vale más que la nota</span></h2>
   <div class="foto">
-    <button type="button" id="btnCam">📷 Tomar foto</button>
-    <button type="button" id="btnArch">🖼️ Elegir imagen</button>
+    <button type="button" id="btnCam">📷 Cámara</button>
+    <button type="button" id="btnGal">🖼️ Galería</button>
+    <button type="button" id="btnArch">📁 Buscar archivo</button>
   </div>
-  <p class="peso" id="pistaFoto">En la computadora también puedes pegar una captura con Ctrl+V.</p>
+  <p class="peso" id="pistaFoto">Galería abre tus fotos; <b>Buscar archivo</b> abre el explorador
+  completo &mdash; Drive, OneDrive, Descargas. En la computadora también puedes pegar con Ctrl+V.</p>
   <div class="previa" id="previa">
     <img id="previaImg" alt="Vista previa del gráfico">
     <button class="quitar" type="button" id="quitarFoto">Quitar</button>
   </div>
   <input type="file" id="fCam" accept="image/*" capture="environment" hidden>
-  <input type="file" id="fArch" accept="image/*" hidden>
+  <input type="file" id="fGal" accept="image/*" hidden>
+  <!--  Sin accept a proposito: en Android, accept="image/*" abre el selector
+        de fotos y esconde Drive, OneDrive y la memoria del telefono. Sin el,
+        abre el explorador completo. Que sea imagen se valida al procesarla. -->
+  <input type="file" id="fArch" hidden>
 </div>
 
 <div class="paso">
@@ -269,7 +275,7 @@ function reducir(archivo){
       URL.revokeObjectURL(url);
       c.toBlob(function(b){ b ? ok(b) : mal(new Error("no se pudo procesar")); }, "image/jpeg", CALIDAD);
     };
-    im.onerror = function(){ URL.revokeObjectURL(url); mal(new Error("no es una imagen")); };
+    im.onerror = function(){ URL.revokeObjectURL(url); mal(new Error("ese archivo no es una imagen")); };
     im.src = url;
   });
 }
@@ -288,9 +294,11 @@ async function tomarFoto(archivo){
   }
 }
 g("btnCam").onclick  = function(){ g("fCam").click(); };
+g("btnGal").onclick  = function(){ g("fGal").click(); };
 g("btnArch").onclick = function(){ g("fArch").click(); };
-g("fCam").onchange   = function(){ tomarFoto(this.files[0]); this.value = ""; };
-g("fArch").onchange  = function(){ tomarFoto(this.files[0]); this.value = ""; };
+["fCam","fGal","fArch"].forEach(function(id){
+  g(id).onchange = function(){ tomarFoto(this.files[0]); this.value = ""; };
+});
 g("quitarFoto").onclick = function(){
   fotoPendiente = null;
   g("previa").className = "previa";
