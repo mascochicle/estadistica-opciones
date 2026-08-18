@@ -72,10 +72,15 @@ button.limpiar{background:transparent;border:1px solid var(--linea2);color:var(-
   border-radius:8px;padding:5px 12px;font:inherit;font-size:12.5px;cursor:pointer;margin-left:auto}
 button.limpiar:hover{border-color:var(--tinta3);color:var(--tinta)}
 
-.grupos{display:flex;gap:11px;align-items:center;flex-wrap:wrap;background:var(--panel);
-  border:1px solid var(--linea);border-radius:12px;padding:11px 13px}
-.grupos .etiq{font-size:11px;color:var(--tinta3);text-transform:uppercase;letter-spacing:.05em;font-weight:640}
-.grupos .pista{font-size:11.5px;color:var(--tinta3);margin-left:auto}
+.botonera{background:var(--panel);border:1px solid var(--linea);border-radius:12px;
+  padding:4px 13px;display:flex;flex-direction:column}
+.botonera .fila{display:flex;gap:11px;align-items:center;flex-wrap:wrap;padding:9px 0;
+  border-bottom:1px solid var(--linea)}
+.botonera .fila:last-child{border-bottom:0}
+.botonera .etiq{font-size:11px;color:var(--tinta3);text-transform:uppercase;letter-spacing:.05em;
+  font-weight:640;min-width:58px}
+.botonera .pista{font-size:11.5px;color:var(--tinta3);margin-left:auto}
+.chip.todos{border-style:dashed}
 .chips{display:flex;gap:7px;flex-wrap:wrap}
 .chip{font:inherit;font-size:12.5px;padding:5px 12px;border-radius:999px;cursor:pointer;
   border:1px solid var(--linea2);background:var(--panel);color:var(--tinta3);
@@ -138,23 +143,29 @@ svg{display:block;width:100%;height:auto;overflow:visible}
 
 <div class="kpis" id="kpis"></div>
 
-<div class="grupos" id="grupos">
-  <span class="etiq">Grupo</span>
-  <div class="chips" id="chipsGrupo"></div>
-  <span class="pista" id="pistaGrupo"></span>
+<div class="botonera">
+  <div class="fila">
+    <span class="etiq">Periodo</span>
+    <div class="chips" id="chipsPeriodo"></div>
+    <span class="pista" id="pistaPeriodo"></span>
+  </div>
+  <div class="fila">
+    <span class="etiq">Plazo</span>
+    <div class="chips" id="chipsPlazo"></div>
+    <span class="pista" id="pistaPlazo"></span>
+  </div>
+  <div class="fila">
+    <span class="etiq">Tipo</span>
+    <div class="chips" id="chipsCP"></div>
+    <span class="pista" id="pistaCP"></span>
+  </div>
 </div>
 
 <div class="filtros">
-  <label>Vencimiento <select id="fTipo"></select></label>
   <label>Estrategia <select id="fEst"></select></label>
   <label>Subyacente <select id="fTk"></select></label>
   <label>Año <select id="fAno"></select></label>
   <label>Mes <select id="fMes"></select></label>
-  <label>Tipo <select id="fCP">
-    <option value="">todos</option>
-    <option value="C">solo calls</option>
-    <option value="P">solo puts</option>
-  </select></label>
   <label>Cierre <select id="fCierre">
     <option value="">todos</option>
     <option value="v">vendidas</option>
@@ -239,13 +250,14 @@ const D={"c":[{"f":"2026-06-09","h":"12:49","t":"SOFI","cp":"C","k":20,"v":"2026
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v7 · 18 ago 2026";
+var VERSION = "v8 · 18 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
           {minimumFractionDigits:d,maximumFractionDigits:d}); };
 var pct = function(n){ return n==null?"—":n.toFixed(0)+"%"; };
 var mesTxt = function(k){ return MESES[+k.slice(5)-1]+" "+k.slice(2,4); };
+var uniq = function(arr){ return Array.from(new Set(arr)).filter(Boolean).sort(); };
 
 // El grupo sale de la propia etiqueta anotada, no de reglas de fecha:
 // "0DTE" y "Metodo propio" son grupos en si mismos, y cualquier otra
@@ -263,25 +275,88 @@ function grupo(o){
   return o.f < SEM2 ? "Seminario 1" : "Seminario 2";
 }
 
-//  El grupo es el corte mas importante, asi que va como botones y no como
-//  lista: se pueden encender varios a la vez, o apagar los que estorben.
-//  Se guarda el conjunto de los ENCENDIDOS; con todos encendidos no filtra.
-var GRUPOS = [];
-var F = {grupos: null, tipo:"", est:"", tk:"", ano:"", mes:"", cp:"", cierre:""};
+//  Los tres cortes que mas se comparan van como botones y no como listas:
+//  se pueden encender varios a la vez, o apagar los que estorben. Cada fila
+//  guarda el conjunto de los ENCENDIDOS; con todos encendidos no filtra.
+var F = {periodo:null, plazo:null, cp:null, est:"", tk:"", ano:"", mes:"", cierre:""};
 
 function pasa(o){
-  if(F.grupos && !F.grupos[grupo(o)]) return false;
-  if(F.tipo   && o.tp !== F.tipo) return false;
-  if(F.est    && (o.e||"(sin etiqueta)") !== F.est) return false;
-  if(F.tk     && o.t !== F.tk) return false;
-  if(F.ano    && o.f.slice(0,4) !== F.ano) return false;
-  if(F.mes    && o.f.slice(0,7) !== F.mes) return false;
-  if(F.cp     && o.cp !== F.cp) return false;
+  if(F.periodo && !F.periodo[grupo(o)]) return false;
+  if(F.plazo   && !F.plazo[o.tp]) return false;
+  if(F.cp      && !F.cp[o.cp]) return false;
+  if(F.est     && (o.e||"(sin etiqueta)") !== F.est) return false;
+  if(F.tk      && o.t !== F.tk) return false;
+  if(F.ano     && o.f.slice(0,4) !== F.ano) return false;
+  if(F.mes     && o.f.slice(0,7) !== F.mes) return false;
   if(F.cierre === "x" && !o.x) return false;
   if(F.cierre === "v" && o.x) return false;
   return true;
 }
 var vis = function(){ return C.filter(pasa); };
+
+// ---------------------------------------------------------------- botoneras
+//  Una botonera por corte. Devuelve una funcion que la repinta.
+function botonera(destino, pista, valores, clave, campo, rotulo){
+  function cuantos(){
+    var n = 0;
+    valores.forEach(function(v){ if(F[campo][v]) n++; });
+    return n;
+  }
+  function repintar(){
+    var cont = new Map();
+    C.forEach(function(o){ var k = clave(o); cont.set(k, (cont.get(k)||0)+1); });
+    var todos = cuantos() === valores.length;
+    var html = '<button class="chip todos" type="button" aria-pressed="'+todos+'" data-todos="1">'
+             + '<span class="marca">'+(todos?"✓":"")+'</span>todos</button>';
+    html += valores.map(function(v){
+      var on = F[campo][v];
+      return '<button class="chip" type="button" aria-pressed="'+on+'" data-v="'+v+'">'
+           + '<span class="marca">'+(on?"✓":"")+'</span>'+(rotulo?rotulo(v):v)
+           + ' <span style="opacity:.65">'+(cont.get(v)||0)+'</span></button>';
+    }).join("");
+    g(destino).innerHTML = html;
+
+    Array.prototype.forEach.call(g(destino).querySelectorAll(".chip"), function(b){
+      b.onclick = function(){
+        if(b.dataset.todos){
+          valores.forEach(function(v){ F[campo][v] = true; });
+        } else {
+          var v = b.dataset.v;
+          //  Siempre queda al menos uno: apagar el ultimo dejaria la
+          //  pantalla vacia sin que se entienda por que.
+          if(F[campo][v] && cuantos() === 1) return;
+          F[campo][v] = !F[campo][v];
+        }
+        repintar(); pintar();
+      };
+    });
+    var n = cuantos();
+    g(pista).textContent = n === valores.length ? "todos" : n + " de " + valores.length;
+  }
+  return repintar;
+}
+
+function reiniciar(campo, valores){
+  F[campo] = {};
+  valores.forEach(function(v){ F[campo][v] = true; });
+}
+
+var VAL_PERIODO = ["Seminario 1", "Seminario 2", "0DTE", PROPIO, "(sin clasificar)"]
+  .filter(function(v){ return C.some(function(o){ return grupo(o) === v; }); });
+var VAL_PLAZO = uniq(C.map(function(o){ return o.tp; }));
+var VAL_CP = ["C", "P"].filter(function(v){ return C.some(function(o){ return o.cp === v; }); });
+var CP_ROTULO = function(v){ return v === "C" ? "Call" : "Put"; };
+
+reiniciar("periodo", VAL_PERIODO);
+reiniciar("plazo",   VAL_PLAZO);
+reiniciar("cp",      VAL_CP);
+
+var pintaPeriodo = botonera("chipsPeriodo", "pistaPeriodo", VAL_PERIODO, grupo, "periodo", null);
+var pintaPlazo   = botonera("chipsPlazo",   "pistaPlazo",   VAL_PLAZO,
+                            function(o){ return o.tp; }, "plazo", null);
+var pintaCP      = botonera("chipsCP",      "pistaCP",      VAL_CP,
+                            function(o){ return o.cp; }, "cp", CP_ROTULO);
+function pintarBotoneras(){ pintaPeriodo(); pintaPlazo(); pintaCP(); }
 
 // ---------------------------------------------------------------- selectores
 function llenar(sel, valores, etiqueta, todos){
@@ -289,54 +364,18 @@ function llenar(sel, valores, etiqueta, todos){
   s.innerHTML = '<option value="">'+todos+'</option>' +
     valores.map(function(v){ return '<option value="'+v+'">'+(etiqueta?etiqueta(v):v)+'</option>'; }).join("");
 }
-var uniq = function(arr){ return Array.from(new Set(arr)).filter(Boolean).sort(); };
 
-GRUPOS = ["Seminario 1", "Seminario 2", "0DTE", PROPIO, "(sin clasificar)"].filter(function(v){
-  return C.some(function(o){ return grupo(o) === v; });
-});
-function encendidos(){
-  var n = 0;
-  GRUPOS.forEach(function(v){ if(F.grupos[v]) n++; });
-  return n;
-}
-function pintarGrupos(){
-  var cont = new Map();
-  C.forEach(function(o){ var k = grupo(o); cont.set(k, (cont.get(k)||0)+1); });
-  g("chipsGrupo").innerHTML = GRUPOS.map(function(v){
-    var on = F.grupos[v];
-    return '<button class="chip" type="button" aria-pressed="'+on+'" data-v="'+v+'">'
-         + '<span class="marca">'+(on?"✓":"")+'</span>'+v
-         + ' <span style="opacity:.65">'+(cont.get(v)||0)+'</span></button>';
-  }).join("");
-  Array.prototype.forEach.call(g("chipsGrupo").querySelectorAll(".chip"), function(b){
-    b.onclick = function(){
-      var v = b.dataset.v;
-      //  Siempre tiene que quedar al menos uno: apagar el ultimo dejaria la
-      //  pantalla en blanco sin que se entienda por que.
-      if(F.grupos[v] && encendidos() === 1) return;
-      F.grupos[v] = !F.grupos[v];
-      pintarGrupos(); pintar();
-    };
-  });
-  var n = encendidos();
-  g("pistaGrupo").textContent = n === GRUPOS.length
-    ? "todos · clic para quitar los que no quieras comparar"
-    : n + " de " + GRUPOS.length + " · clic para agregar o quitar";
-}
-F.grupos = {};
-GRUPOS.forEach(function(v){ F.grupos[v] = true; });
-llenar("fTipo", uniq(C.map(function(o){return o.tp;})), null, "todos");
+
 llenar("fEst",  uniq(C.map(function(o){return o.e||"(sin etiqueta)";})), null, "todas");
 llenar("fTk",   uniq(C.map(function(o){return o.t;})), null, "todos");
 llenar("fAno",  uniq(C.map(function(o){return o.f.slice(0,4);})), null, "todos");
 llenar("fMes",  uniq(C.map(function(o){return o.f.slice(0,7);})), mesTxt, "todos");
 
-var FILTROS = ["fTipo","fEst","fTk","fAno","fMes","fCP","fCierre"];
+var FILTROS = ["fEst","fTk","fAno","fMes","fCierre"];
 FILTROS.forEach(function(id){
   g(id).onchange = function(){
-    F.tipo = g("fTipo").value; F.est = g("fEst").value;
-    F.tk = g("fTk").value; F.ano = g("fAno").value; F.mes = g("fMes").value;
-    F.cp = g("fCP").value; F.cierre = g("fCierre").value;
+    F.est = g("fEst").value; F.tk = g("fTk").value;
+    F.ano = g("fAno").value; F.mes = g("fMes").value; F.cierre = g("fCierre").value;
     //  El mes vive dentro de un ano: si se elige un ano, la lista de meses
     //  se recorta a los suyos, y un mes de otro ano se descarta en vez de
     //  dejar la vista vacia sin explicacion.
@@ -345,9 +384,11 @@ FILTROS.forEach(function(id){
   };
 });
 g("limpiar").onclick = function(){
-  F = {grupos:{}, tipo:"",est:"",tk:"",ano:"",mes:"",cp:"",cierre:""};
-  GRUPOS.forEach(function(v){ F.grupos[v] = true; });
-  pintarGrupos();
+  F.est = ""; F.tk = ""; F.ano = ""; F.mes = ""; F.cierre = "";
+  reiniciar("periodo", VAL_PERIODO);
+  reiniciar("plazo",   VAL_PLAZO);
+  reiniciar("cp",      VAL_CP);
+  pintarBotoneras();
   FILTROS.forEach(function(i){ g(i).value = ""; });
   ajustarMeses();
   pintar();
@@ -654,7 +695,7 @@ g("pie").innerHTML = "Los datos salen de los extractos de actividad de IBKR y de
   + "<br>El <b>plazo</b> son los días comprados al abrir, no los que quedaban al cerrar. "
   + "El resultado ya viene neto de comisiones, tal como lo reporta IBKR.";
 
-pintarGrupos();
+pintarBotoneras();
 g("ver").textContent = VERSION;
 
 pintar();
