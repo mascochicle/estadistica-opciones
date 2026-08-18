@@ -36,6 +36,7 @@ h1{font-size:21px;font-weight:660;letter-spacing:-.02em;margin:0}
   font-weight:680;margin:0 0 9px;display:flex;align-items:center;gap:7px}
 .num{width:17px;height:17px;border-radius:50%;background:var(--acento);color:var(--fondo);
   display:grid;place-items:center;font-size:10px;font-weight:700;flex:none}
+.opt{text-transform:none;letter-spacing:0;font-weight:400;color:var(--tinta3)}
 .tecla{display:flex;flex-wrap:wrap;gap:6px}
 button{font:inherit;cursor:pointer}
 .t{padding:11px 14px;border-radius:10px;border:1px solid var(--linea2);background:var(--panel);
@@ -46,6 +47,17 @@ button{font:inherit;cursor:pointer}
 input[type=text]{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--linea2);
   background:var(--hundido);color:var(--tinta);font:inherit;font-size:14.5px;min-height:46px;margin-top:8px}
 input[type=text]:focus{outline:none;border-color:var(--acento)}
+
+.foto{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.foto button{flex:1;min-width:130px;padding:12px;border-radius:10px;border:1px dashed var(--linea2);
+  background:var(--hundido);color:var(--tinta2);font-size:13.5px;min-height:48px}
+.foto button:hover{border-color:var(--acento);color:var(--acento)}
+.previa{margin-top:9px;position:relative;display:none}
+.previa.on{display:block}
+.previa img{width:100%;border-radius:10px;border:1px solid var(--linea2);display:block}
+.previa .quitar{position:absolute;top:7px;right:7px;background:rgba(10,13,18,.85);border:1px solid var(--linea2);
+  color:var(--tinta);border-radius:9px;padding:5px 11px;font-size:12.5px;min-height:34px}
+.peso{font-size:11.5px;color:var(--tinta3);margin-top:6px}
 
 .guardar{width:100%;padding:15px;border-radius:12px;border:0;background:var(--hundido);
   color:var(--tinta3);font-size:16px;font-weight:680;min-height:56px;margin-top:10px}
@@ -71,24 +83,29 @@ li .qq{flex:1;min-width:0}
 li .tk{font-weight:700;font-size:14.5px}
 li .es{font-size:12.5px;color:var(--acento);font-weight:560}
 li .nt{font-size:12.5px;color:var(--tinta2);margin-top:2px;word-break:break-word}
+li .miniatura{margin-top:7px;width:100%;max-width:230px;border-radius:8px;border:1px solid var(--linea2);
+  display:block;cursor:zoom-in}
 li .borrar{background:transparent;border:0;color:var(--tinta3);font-size:19px;line-height:1;padding:4px 7px;border-radius:7px}
 .sinnada{color:var(--tinta3);font-size:12.5px;text-align:center;padding:20px 8px;
   border:1px dashed var(--linea2);border-radius:11px}
 
 dialog{border:0;border-radius:14px;background:var(--panel);color:var(--tinta);padding:0;
   max-width:560px;width:calc(100% - 26px)}
-dialog::backdrop{background:rgba(0,0,0,.66)}
+dialog::backdrop{background:rgba(0,0,0,.7)}
 .dlg{padding:15px 16px}
 .dlg h3{margin:0 0 4px;font-size:15px;font-weight:660}
 .dlg p{margin:0 0 10px;font-size:12.5px;color:var(--tinta3);line-height:1.55}
-textarea{width:100%;height:190px;background:var(--fondo);color:var(--tinta2);border:1px solid var(--linea2);
+textarea{width:100%;height:180px;background:var(--fondo);color:var(--tinta2);border:1px solid var(--linea2);
   border-radius:9px;padding:9px;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:11px}
 .dlg .fila{display:flex;gap:8px;margin-top:10px}
 .dlg .fila button{flex:1;padding:11px;border-radius:9px;border:1px solid var(--linea2);
   background:var(--hundido);color:var(--tinta);font-size:13.5px;min-height:44px}
 .dlg .fila button.pri{background:var(--acento);border-color:var(--acento);color:var(--fondo);font-weight:640}
+#lupa{background:transparent;max-width:min(96vw,1100px);width:auto}
+#lupa img{width:100%;border-radius:12px;display:block}
+#lupa .cerrarLupa{width:100%;margin-top:9px;padding:12px;border-radius:10px;border:1px solid var(--linea2);
+  background:var(--panel);color:var(--tinta);font-size:14px;min-height:46px}
 .pie{font-size:11.5px;color:var(--tinta3);border-top:1px solid var(--linea);padding-top:12px;line-height:1.6}
-.pie code{background:var(--hundido);padding:1px 5px;border-radius:4px;font-size:11px}
 </style>
 </head>
 <body>
@@ -113,7 +130,22 @@ textarea{width:100%;height:190px;background:var(--fondo);color:var(--tinta2);bor
 </div>
 
 <div class="paso">
-  <h2><span class="num">3</span> Nota <span style="text-transform:none;letter-spacing:0;font-weight:400;color:var(--tinta3)">— opcional</span></h2>
+  <h2><span class="num">3</span> Gráfico <span class="opt">— opcional, pero vale más que la nota</span></h2>
+  <div class="foto">
+    <button type="button" id="btnCam">📷 Tomar foto</button>
+    <button type="button" id="btnArch">🖼️ Elegir imagen</button>
+  </div>
+  <p class="peso" id="pistaFoto">En la computadora también puedes pegar una captura con Ctrl+V.</p>
+  <div class="previa" id="previa">
+    <img id="previaImg" alt="Vista previa del gráfico">
+    <button class="quitar" type="button" id="quitarFoto">Quitar</button>
+  </div>
+  <input type="file" id="fCam" accept="image/*" capture="environment" hidden>
+  <input type="file" id="fArch" accept="image/*" hidden>
+</div>
+
+<div class="paso">
+  <h2><span class="num">4</span> Nota <span class="opt">— opcional</span></h2>
   <input type="text" id="nota" placeholder="lo que quieras recordar" maxlength="160">
   <p class="resumen" id="resumen"></p>
   <button class="guardar" id="guardar" disabled>Anotar</button>
@@ -122,28 +154,33 @@ textarea{width:100%;height:190px;background:var(--fondo);color:var(--tinta2);bor
 
 <div class="barra">
   <span class="cuenta" id="cuenta">Anotadas</span>
-  <button class="chico" id="exportar">Enviar a Claude</button>
+  <button class="chico" id="exportar">Copiar todas</button>
 </div>
 
 <ul id="lista"></ul>
 <p class="sinnada" id="sinnada">Todavía no has anotado nada.</p>
 
-<p class="pie">Se guarda en este teléfono y funciona sin señal. Cuando quieras pasármelas,
-dale a <b>Enviar a Claude</b>: copia el texto y pégamelo en el chat. Yo las cruzo con el
-extracto por ticker y fecha, y la bitácora se llena sola.</p>
+<p class="pie">Todo se guarda en este teléfono y funciona sin señal. Las anotaciones se
+<b>acumulan</b>: no hay que mandar nada de una en una. Cuando quieras pasármelas, dale a
+<b>Copiar todas</b> y pégamelas en el chat &mdash; una sola vez, con todas. Los gráficos se
+quedan aquí para tu memoria; si quieres que yo vea alguno, mándamelo suelto.</p>
 </div>
 
 <dialog id="dlg"><div class="dlg">
   <h3>Copia esto y pégamelo</h3>
-  <p>Son <span id="dlgN"></span> anotaciones. Después de pegármelas puedes borrarlas de aquí,
-  o dejarlas: no estorban.</p>
+  <p>Son <span id="dlgN"></span> anotaciones, todas de un jalón. Después puedes borrarlas o dejarlas.</p>
   <textarea id="dlgTxt" readonly></textarea>
   <div class="fila">
     <button class="pri" id="dlgCopiar">Copiar</button>
     <button id="dlgCerrar">Cerrar</button>
   </div>
-  <div class="fila"><button id="dlgBorrar" style="color:var(--alerta)">Borrar todas las anotadas</button></div>
+  <div class="fila"><button id="dlgBorrar" style="color:var(--alerta)">Borrar todas</button></div>
 </div></dialog>
+
+<dialog id="lupa">
+  <img id="lupaImg" alt="Gráfico">
+  <button class="cerrarLupa" type="button" id="cerrarLupa">Cerrar</button>
+</dialog>
 
 <script>
 (function(){
@@ -155,29 +192,125 @@ var ESTRATEGIAS = ["0DTE","Gap a la alza","Gap a la alza IMP","Gap B a la alza",
   "Caida Normal","Caida Fuerte","PM40-hora","Piso Fuerte Día","Techo Fuerte",
   "Hanger diario","Hanger Semanal","Modelo de los 4 pasos","3 semanas","Verde Rojo semanal",
   "Estrategia earnings","Fed speech","Estrategia Inflacion","Método propio","Sin estrategia clara"];
-var LLAVE = "capturas_v1";
+var LLAVE_VIEJA = "capturas_v1";
+var MAX_LADO = 1100, CALIDAD = 0.62;
 
 var g = function(id){ return document.getElementById(id); };
 var sel = {tk:"", est:""};
+var fotoPendiente = null;      // Blob ya reducido
 var datos = [];
 
-//  Se guarda aqui mismo, en el telefono. Es lo unico que sobrevive a que
-//  la app se cierre, se reinicie el aparato o no haya senal.
-function cargar(){
-  try{ datos = JSON.parse(localStorage.getItem(LLAVE)) || []; }
-  catch(e){ datos = []; }
-  if(!Array.isArray(datos)) datos = [];
+// =====================================================================
+//  ALMACEN
+//  IndexedDB y no localStorage: las imagenes van como Blob, sin el 33%
+//  extra de convertirlas a texto, y sin el tope de 5 MB que localStorage
+//  impone. Las anotaciones viejas de localStorage se migran solas.
+// =====================================================================
+var db = null;
+function abrir(){
+  return new Promise(function(ok, mal){
+    var q = indexedDB.open("captura", 1);
+    q.onupgradeneeded = function(){
+      var d = q.result;
+      if(!d.objectStoreNames.contains("notas")) d.createObjectStore("notas", {keyPath:"ts"});
+    };
+    q.onsuccess = function(){ db = q.result; ok(db); };
+    q.onerror = function(){ mal(q.error); };
+  });
 }
-function guardar(){
-  try{
-    localStorage.setItem(LLAVE, JSON.stringify(datos));
-    return true;
-  }catch(e){
-    avisar("No se pudo guardar: " + (e.message || e), false);
-    return false;
-  }
+function tx(modo){ return db.transaction("notas", modo).objectStore("notas"); }
+function todas(){
+  return new Promise(function(ok, mal){
+    var q = tx("readonly").getAll();
+    q.onsuccess = function(){ ok(q.result || []); };
+    q.onerror = function(){ mal(q.error); };
+  });
+}
+function poner(r){
+  return new Promise(function(ok, mal){
+    var q = tx("readwrite").put(r);
+    q.onsuccess = function(){ ok(); }; q.onerror = function(){ mal(q.error); };
+  });
+}
+function quitar(ts){
+  return new Promise(function(ok, mal){
+    var q = tx("readwrite").delete(ts);
+    q.onsuccess = function(){ ok(); }; q.onerror = function(){ mal(q.error); };
+  });
+}
+function vaciar(){
+  return new Promise(function(ok, mal){
+    var q = tx("readwrite").clear();
+    q.onsuccess = function(){ ok(); }; q.onerror = function(){ mal(q.error); };
+  });
+}
+async function migrar(){
+  var viejo = null;
+  try{ viejo = JSON.parse(localStorage.getItem(LLAVE_VIEJA)); }catch(e){}
+  if(!viejo || !viejo.length) return;
+  for(var i = 0; i < viejo.length; i++) await poner(viejo[i]);
+  try{ localStorage.removeItem(LLAVE_VIEJA); }catch(e){}
 }
 
+// =====================================================================
+//  IMAGEN
+//  Se reduce en el propio telefono antes de guardarla: una foto de camara
+//  pesa 3-5 MB y una captura de grafico reducida queda en 80-150 KB.
+// =====================================================================
+function reducir(archivo){
+  return new Promise(function(ok, mal){
+    var url = URL.createObjectURL(archivo);
+    var im = new Image();
+    im.onload = function(){
+      var w = im.naturalWidth, h = im.naturalHeight;
+      var f = Math.min(1, MAX_LADO / Math.max(w, h));
+      var c = document.createElement("canvas");
+      c.width = Math.round(w * f); c.height = Math.round(h * f);
+      c.getContext("2d").drawImage(im, 0, 0, c.width, c.height);
+      URL.revokeObjectURL(url);
+      c.toBlob(function(b){ b ? ok(b) : mal(new Error("no se pudo procesar")); }, "image/jpeg", CALIDAD);
+    };
+    im.onerror = function(){ URL.revokeObjectURL(url); mal(new Error("no es una imagen")); };
+    im.src = url;
+  });
+}
+var kb = function(b){ return Math.round(b / 1024) + " KB"; };
+
+async function tomarFoto(archivo){
+  if(!archivo) return;
+  try{
+    var b = await reducir(archivo);
+    fotoPendiente = b;
+    g("previaImg").src = URL.createObjectURL(b);
+    g("previa").className = "previa on";
+    g("pistaFoto").textContent = "Listo · " + kb(b.size) + " (de " + kb(archivo.size) + ")";
+  }catch(e){
+    avisar("No se pudo usar esa imagen: " + (e.message || e), false);
+  }
+}
+g("btnCam").onclick  = function(){ g("fCam").click(); };
+g("btnArch").onclick = function(){ g("fArch").click(); };
+g("fCam").onchange   = function(){ tomarFoto(this.files[0]); this.value = ""; };
+g("fArch").onchange  = function(){ tomarFoto(this.files[0]); this.value = ""; };
+g("quitarFoto").onclick = function(){
+  fotoPendiente = null;
+  g("previa").className = "previa";
+  g("pistaFoto").textContent = "En la computadora también puedes pegar una captura con Ctrl+V.";
+};
+document.addEventListener("paste", function(e){
+  var it = (e.clipboardData || {}).items || [];
+  for(var i = 0; i < it.length; i++){
+    if(it[i].type && it[i].type.indexOf("image") === 0){
+      tomarFoto(it[i].getAsFile());
+      e.preventDefault();
+      return;
+    }
+  }
+});
+
+// =====================================================================
+//  INTERFAZ
+// =====================================================================
 function teclas(destino, valores, clase, campo){
   g(destino).innerHTML = valores.map(function(v){
     return '<button class="t '+clase+'" type="button" aria-pressed="false" data-v="'+v+'">'+v+'</button>';
@@ -203,23 +336,22 @@ g("otroTk").oninput = function(){
   sel.tk = this.value;
   marcar("tickers", "tk"); resumen();
 };
-
 function resumen(){
   var listo = sel.tk && sel.est;
-  g("resumen").innerHTML = listo ? "Vas a anotar <b>"+sel.tk+"</b> con <b>"+sel.est+"</b>."
+  g("resumen").innerHTML = listo ? "Vas a anotar <b>"+sel.tk+"</b> con <b>"+sel.est+"</b>"
+                                 + (fotoPendiente ? " y su gráfico." : ".")
                          : !sel.tk ? "Elige el ticker." : "Elige la estrategia.";
   var b = g("guardar");
   b.disabled = !listo;
   b.className = listo ? "guardar listo" : "guardar";
   b.textContent = listo ? "Anotar " + sel.tk : "Anotar";
 }
-
 function avisar(txt, bien){
   var a = g("aviso");
   a.textContent = txt;
   a.className = "aviso on " + (bien ? "bien" : "mal");
   clearTimeout(avisar.t);
-  avisar.t = setTimeout(function(){ a.className = "aviso"; }, 3000);
+  avisar.t = setTimeout(function(){ a.className = "aviso"; }, 3200);
 }
 
 var M = ["ene","feb","mar","abr","may","jun","jul","ago","sep","oct","nov","dic"];
@@ -230,30 +362,52 @@ function reloj(d){
 var esc = function(s){ return String(s).replace(/[<>&]/g, function(c){
   return {"<":"&lt;", ">":"&gt;", "&":"&amp;"}[c]; }); };
 
+var urls = [];
 function pintar(){
-  g("lista").innerHTML = datos.map(function(r, i){
-    var d = new Date(r.ts);
+  urls.forEach(URL.revokeObjectURL);
+  urls = [];
+  var orden = datos.slice().sort(function(a,b){ return b.ts - a.ts; });
+  g("lista").innerHTML = orden.map(function(r){
+    var d = new Date(r.ts), src = "";
+    if(r.img){ src = URL.createObjectURL(r.img); urls.push(src); }
     return '<li><span class="cuando">'+d.getDate()+' '+M[d.getMonth()]+'<br>'+reloj(d)+'</span>'
       + '<span class="qq"><span class="tk">'+esc(r.tk)+'</span> <span class="es">'+esc(r.est)+'</span>'
       + (r.nota ? '<span class="nt">'+esc(r.nota)+'</span>' : '')
-      + '</span><button class="borrar" type="button" data-i="'+i+'" title="Borrar">×</button></li>';
+      + (src ? '<img class="miniatura" src="'+src+'" alt="Gráfico" data-ver="'+src+'">' : '')
+      + '</span><button class="borrar" type="button" data-ts="'+r.ts+'" title="Borrar">×</button></li>';
   }).join("");
   Array.prototype.forEach.call(g("lista").querySelectorAll(".borrar"), function(b){
-    b.onclick = function(){
-      datos.splice(+b.dataset.i, 1);
-      if(guardar()) pintar();
+    b.onclick = async function(){
+      await quitar(+b.dataset.ts);
+      datos = datos.filter(function(r){ return r.ts !== +b.dataset.ts; });
+      pintar();
     };
   });
+  Array.prototype.forEach.call(g("lista").querySelectorAll(".miniatura"), function(im){
+    im.onclick = function(){ g("lupaImg").src = im.dataset.ver; g("lupa").showModal(); };
+  });
   g("sinnada").style.display = datos.length ? "none" : "";
-  g("cuenta").textContent = datos.length ? "Anotadas · " + datos.length : "Anotadas";
+  var peso = datos.reduce(function(a,r){ return a + (r.img ? r.img.size : 0); }, 0);
+  g("cuenta").textContent = datos.length
+    ? "Anotadas · " + datos.length + (peso ? "  ·  " + kb(peso) + " en gráficos" : "")
+    : "Anotadas";
 }
+g("cerrarLupa").onclick = function(){ g("lupa").close(); };
 
-g("guardar").onclick = function(){
+g("guardar").onclick = async function(){
   if(!sel.tk || !sel.est) return;
-  datos.unshift({ts: Date.now(), tk: sel.tk, est: sel.est, nota: g("nota").value.trim()});
-  if(!guardar()){ datos.shift(); return; }
-  avisar("Anotado: " + sel.tk + " · " + sel.est, true);
+  var r = {ts: Date.now(), tk: sel.tk, est: sel.est, nota: g("nota").value.trim()};
+  if(fotoPendiente) r.img = fotoPendiente;
+  try{
+    await poner(r);
+  }catch(e){
+    avisar("No se pudo guardar: " + (e.message || e), false);
+    return;
+  }
+  datos.push(r);
+  avisar("Anotado: " + r.tk + " · " + r.est + (r.img ? " con gráfico" : ""), true);
   sel.tk = ""; sel.est = ""; g("otroTk").value = ""; g("nota").value = "";
+  g("quitarFoto").onclick();
   marcar("tickers","tk"); marcar("estrategias","est");
   resumen(); pintar();
 };
@@ -264,39 +418,44 @@ function iso(ts){
   return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes());
 }
 g("exportar").onclick = function(){
-  if(!datos.length){ avisar("No hay nada que enviar todavía.", false); return; }
-  var txt = datos.slice().sort(function(a,b){ return a.ts - b.ts; })
-    .map(function(r){ return iso(r.ts)+"  "+r.tk+"  "+r.est+(r.nota ? "  — "+r.nota : ""); })
-    .join("\n");
-  g("dlgTxt").value = txt;
+  if(!datos.length){ avisar("No hay nada que copiar todavía.", false); return; }
+  g("dlgTxt").value = datos.slice().sort(function(a,b){ return a.ts - b.ts; })
+    .map(function(r){
+      return iso(r.ts)+"  "+r.tk+"  "+r.est
+           + (r.nota ? "  — "+r.nota : "")
+           + (r.img ? "  [gráfico]" : "");
+    }).join("\n");
   g("dlgN").textContent = datos.length;
   g("dlg").showModal();
 };
 g("dlgCopiar").onclick = async function(){
-  var t = g("dlgTxt");
+  var t = g("dlgTxt"), b = this;
   t.select(); t.setSelectionRange(0, 999999);
-  try{
-    await navigator.clipboard.writeText(t.value);
-    this.textContent = "Copiado ✓";
-  }catch(e){
-    document.execCommand("copy");
-    this.textContent = "Seleccionado — copia con el teclado";
-  }
-  var b = this;
+  try{ await navigator.clipboard.writeText(t.value); b.textContent = "Copiado ✓"; }
+  catch(e){ document.execCommand("copy"); b.textContent = "Seleccionado — copia con el teclado"; }
   setTimeout(function(){ b.textContent = "Copiar"; }, 2400);
 };
 g("dlgCerrar").onclick = function(){ g("dlg").close(); };
-g("dlgBorrar").onclick = function(){
+g("dlgBorrar").onclick = async function(){
   if(!confirm("¿Borrar las " + datos.length + " anotaciones de este teléfono?")) return;
+  await vaciar();
   datos = [];
-  guardar(); pintar(); g("dlg").close();
+  pintar(); g("dlg").close();
 };
 
-cargar(); pintar(); resumen();
+// ------------------------------------------------------------- arranque
+(async function(){
+  try{
+    await abrir();
+    await migrar();
+    datos = await todas();
+  }catch(e){
+    avisar("No se pudo abrir el almacén: " + (e.message || e), false);
+  }
+  pintar(); resumen();
+})();
 
-if("serviceWorker" in navigator){
-  navigator.serviceWorker.register("sw.js").catch(function(){});
-}
+if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function(){});
 })();
 </script>
 </body>
