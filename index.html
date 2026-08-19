@@ -42,7 +42,12 @@ body{
   line-height:1.5; -webkit-font-smoothing:antialiased;
   font-variant-numeric:tabular-nums;
 }
-.wrap{max-width:1180px;margin:0 auto;padding:24px 18px 64px;display:flex;flex-direction:column;gap:18px}
+body{padding-left:214px}
+@media (max-width:880px){body{padding-left:0}}
+.wrap{max-width:1180px;margin:0 auto;padding:24px 22px 64px;display:flex;flex-direction:column;gap:18px}
+.wrap > .sub{color:var(--tinta2);font-size:13.5px;margin:0}
+html{scroll-behavior:smooth}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 .mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}
 
 header{display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;justify-content:space-between}
@@ -169,6 +174,63 @@ body.ordenando .rejilla{outline:1px dashed var(--linea2);outline-offset:9px;
   border-radius:4px}
 
 
+/*  RIEL DE CONTEXTO
+    Copiado del panel lateral de Tradervue, pero con otro oficio: alli es un
+    menu que lleva a siete paginas y aqui todo vive en una sola. Lo que sirve
+    es que la cuenta y el instrumento -- que son el contexto de TODO lo que
+    se lee mas abajo -- dejen de irse con el scroll. Antes estaban en el
+    encabezado y en cuanto bajabas a las tablas ya no se veia si estabas en
+    IBKR o en Binance.
+    El ancho sale casi gratis: el contenido ya dejaba ~150 px de margen
+    izquierdo sin usar.  */
+.riel{position:fixed;left:0;top:0;bottom:0;width:214px;z-index:30;
+  box-sizing:border-box;overflow:auto;padding:22px 16px 18px;
+  background:var(--panel);border-right:1px solid var(--linea);
+  display:flex;flex-direction:column;gap:20px}
+.riel h1{font-size:16px;font-weight:660;letter-spacing:-.02em;margin:0;line-height:1.25}
+.riel .eyebrow{margin:0 0 6px}
+.riel .etiq{display:block;font-size:10.5px;color:var(--tinta3);text-transform:uppercase;
+  letter-spacing:.05em;font-weight:680;margin:0 0 7px}
+.riel .chips{gap:6px}
+.riel .chip{font-size:12px;padding:4px 10px}
+
+.indice{display:flex;flex-direction:column;gap:1px}
+.indice a{font-size:13px;color:var(--tinta2);text-decoration:none;padding:6px 9px;
+  border-radius:7px;border-left:2px solid transparent}
+.indice a:hover{background:var(--hundido);color:var(--tinta)}
+/*  Se marca sola segun donde vas leyendo, no con el clic: si se marcara al
+    picar, quedaria mintiendo en cuanto sigues bajando con la rueda.  */
+.indice a.aqui{color:var(--acento);border-left-color:var(--acento);font-weight:620}
+
+/*  Empuja los botones hasta abajo del riel, como el "Import Trades" de ellos.  */
+.rpie{margin-top:auto;display:flex;gap:8px;align-items:center}
+.rpie button.reord{box-shadow:none;flex:1}
+
+@media (max-width:880px){
+  .riel{position:static;width:auto;border-right:0;border-bottom:1px solid var(--linea);
+    flex-direction:row;flex-wrap:wrap;align-items:flex-start;gap:14px}
+  .rpie{margin-top:0}
+  .indice{flex-direction:row}
+}
+
+/*  LA EXPLICACION, DETRAS DE UNA i
+    Cada tarjeta traia su parrafo de explicacion: dos o tres renglones por
+    ocho tarjetas es media pantalla gastada en texto que solo se lee la
+    primera vez. Se guarda detras de la i -- como Tradervue -- y se abre al
+    picarla.  */
+.cabeza{display:flex;align-items:flex-start;gap:7px;justify-content:space-between}
+.cabeza h2{flex:1;min-width:0}
+button.info{flex:none;width:19px;height:19px;border-radius:50%;cursor:pointer;
+  border:1px solid var(--linea2);background:transparent;color:var(--tinta3);
+  font:inherit;font-size:11px;font-weight:700;line-height:1;padding:0;
+  font-family:Georgia,"Times New Roman",serif;font-style:italic}
+button.info:hover{border-color:var(--acento);color:var(--acento)}
+button.info[aria-expanded="true"]{background:var(--acento);border-color:var(--acento);
+  color:var(--panel)}
+button.info:focus-visible{outline:2px solid var(--acento);outline-offset:2px}
+.tarjeta .nota{display:none}
+.tarjeta.abierta .nota{display:block;margin-top:8px}
+
 .botonera{background:var(--panel);border:1px solid var(--linea);border-radius:12px;
   padding:4px 13px;display:flex;flex-direction:column}
 .botonera .fila{display:flex;gap:11px;align-items:center;flex-wrap:wrap;padding:9px 0;
@@ -254,24 +316,38 @@ svg{display:block;width:100%;height:auto;overflow:visible}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 </style>
 
-<div class="wrap">
-<header>
-  <div class="titulo">
+<aside class="riel">
+  <div class="marca">
     <p class="eyebrow">Bitácora de trading <span class="ver" id="ver"></span></p>
     <h1>Estadística de Trading</h1>
-    <p class="sub" id="rango"></p>
   </div>
-  <div class="arriba">
-    <div class="cuentabox" id="filaCuenta">
-      <span class="etiq">Cuenta</span>
-      <div class="chips" id="chipsCuenta"></div>
-    </div>
-    <div class="cuentabox" id="filaInst">
-      <span class="etiq">Instrumento</span>
-      <div class="chips" id="chipsInst"></div>
-    </div>
+
+  <div class="rgrupo" id="filaCuenta">
+    <span class="etiq">Cuenta</span>
+    <div class="chips" id="chipsCuenta"></div>
   </div>
-</header>
+  <div class="rgrupo" id="filaInst">
+    <span class="etiq">Instrumento</span>
+    <div class="chips" id="chipsInst"></div>
+  </div>
+
+  <nav class="indice" id="indice">
+    <span class="etiq">Ir a</span>
+    <a href="#rejGraf">Gráficas</a>
+    <a href="#rejTablas">Tablas</a>
+    <a href="#cardOps">Operaciones</a>
+  </nav>
+
+  <div class="rpie">
+    <button class="reord" id="reordenar" type="button"
+            title="Reordenar las tarjetas arrastrándolas" aria-pressed="false">Reordenar</button>
+    <button class="limpiar" id="limpiar" type="button"
+            title="Limpiar filtros" aria-label="Limpiar filtros">&#10005;</button>
+  </div>
+</aside>
+
+<div class="wrap">
+<p class="sub" id="rango"></p>
 
 <!--  Los numeros van DEBAJO de los cortes que los producen: primero se
       elige que se esta mirando, y luego se lee el resultado de eso.  -->
@@ -336,20 +412,13 @@ svg{display:block;width:100%;height:auto;overflow:visible}
   </div>
 </div>
 
-<div class="tarjeta">
+<div class="tarjeta" id="cardOps">
   <h2>Operaciones <span class="mut" id="cuenta" style="font-weight:400;font-size:12.5px"></span></h2>
   <p class="nota">Todas las que pasan los filtros de arriba. Clic en el encabezado para ordenar.</p>
   <div class="scroll"><table><thead><tr id="hOps"></tr></thead><tbody id="bOps"></tbody></table></div>
 </div>
 
 <p class="pie" id="pie"></p>
-</div>
-
-<div class="flotante">
-  <button class="limpiar" id="limpiar" type="button"
-          title="Limpiar filtros" aria-label="Limpiar filtros">&#10005;</button>
-  <button class="reord" id="reordenar" type="button"
-          title="Reordenar las tarjetas arrastrándolas" aria-pressed="false">Reordenar</button>
 </div>
 
 <div class="tip" id="tip"></div>
@@ -367,7 +436,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v77 · 19 ago 2026";
+var VERSION = "v78 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 //  Nombres completos para la lista de meses: el anio se elige arriba, asi
 //  que aqui basta con el mes y cabe escribirlo entero.
@@ -1519,6 +1588,7 @@ function pintar(){
     grafCierre();
   }
   tablaOps();
+  if(window.marcarIndice) window.marcarIndice();
 }
 
 // ---------------------------------------------------------------- arranque
@@ -1563,6 +1633,73 @@ window.addEventListener("resize", function(){
   clearTimeout(_tempoAncho);
   _tempoAncho = setTimeout(pintar, 180);
 });
+
+// =====================================================================
+//  LA i DE CADA TARJETA, Y EL INDICE DEL RIEL
+// =====================================================================
+(function(){
+  //  El boton se pone al LADO del h2, nunca dentro: adaptarPanel reescribe
+  //  el titulo con textContent al cambiar de instrumento y se llevaria el
+  //  boton por delante.
+  Array.prototype.forEach.call(document.querySelectorAll(".tarjeta"), function(c){
+    var h = c.querySelector("h2"), n = c.querySelector(".nota");
+    if(!h || !n) return;
+    var caja = document.createElement("div");
+    caja.className = "cabeza";
+    h.parentNode.insertBefore(caja, h);
+    caja.appendChild(h);
+
+    var b = document.createElement("button");
+    b.type = "button";
+    b.className = "info";
+    b.textContent = "i";
+    b.setAttribute("aria-expanded", "false");
+    b.title = "Qué es esto";
+    b.addEventListener("click", function(){
+      var abre = !c.classList.contains("abierta");
+      c.classList.toggle("abierta", abre);
+      b.setAttribute("aria-expanded", abre ? "true" : "false");
+    });
+    caja.appendChild(b);
+  });
+
+  //  El indice se marca segun donde vas leyendo, no con el clic: marcado al
+  //  picar quedaria mintiendo en cuanto sigues bajando con la rueda.
+  //
+  //  Se probo con IntersectionObserver y se cambio por esto: son tres
+  //  medidas por evento de scroll -- nada al lado de repintar una grafica --
+  //  y a cambio la regla se lee de corrido: manda la ULTIMA seccion cuyo
+  //  borde de arriba ya paso la linea.
+  var enlaces = Array.prototype.slice.call(document.querySelectorAll(".indice a"));
+  if(!enlaces.length) return;
+  function marcar(){
+    //  Un enlace a un bloque vacio no lleva a ningun lado: viendo acciones no
+    //  hay bloque de tablas -- sus tres tarjetas son de opciones -- asi que
+    //  ese renglon se esconde en vez de quedarse muerto.
+    var vivos = enlaces.filter(function(a){
+      var el = g(a.getAttribute("href").slice(1));
+      var alto = el ? el.getBoundingClientRect().height : 0;
+      a.hidden = !alto;
+      return alto > 0;
+    });
+    if(!vivos.length) return;
+
+    //  Abajo del todo manda la ultima seccion. Sin esto "Operaciones" no se
+    //  marcaria NUNCA: la pagina se acaba antes de que su borde llegue a la
+    //  linea, se queda a 248 px de ella por mas que se ruede.
+    var fin = window.scrollY + window.innerHeight >=
+              document.documentElement.scrollHeight - 4;
+    var elegido = fin ? vivos[vivos.length-1] : vivos[0];
+    if(!fin) vivos.forEach(function(a){
+      if(g(a.getAttribute("href").slice(1)).getBoundingClientRect().top <= 120) elegido = a;
+    });
+    enlaces.forEach(function(a){ a.classList.toggle("aqui", a === elegido); });
+  }
+  window.addEventListener("scroll", marcar, {passive:true});
+  window.addEventListener("resize", marcar);
+  window.marcarIndice = marcar;      // al cambiar de instrumento cambian los bloques
+  marcar();
+})();
 
 // =====================================================================
 //  REORDENAR TARJETAS ARRASTRANDO
