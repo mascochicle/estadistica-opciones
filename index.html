@@ -224,13 +224,6 @@ svg{display:block;width:100%;height:auto;overflow:visible}
   </div>
 </header>
 
-<div class="botonera">
-  <div class="fila" id="filaAno">
-    <span class="etiq">Año</span>
-    <div class="chips" id="chipsAno"></div>
-  </div>
-</div>
-
 <div class="filtros">
   <div class="grupo">
   <label class="soloOpciones" id="lblEst">Estrategia <select id="fEst"></select></label>
@@ -254,10 +247,16 @@ svg{display:block;width:100%;height:auto;overflow:visible}
 
 <div class="rejilla">
   <div class="tarjeta">
-    <h2>Resultado por mes</h2>
-    <p class="nota">Arriba de la línea ganó, abajo perdió &mdash; la posición dice el signo,
-    no hace falta distinguir el color. Clic en una barra para filtrar ese mes.</p>
-    <div id="grafMes"></div>
+    <h2>Resultado acumulado</h2>
+    <p class="nota">La suma corrida de lo ganado y perdido, mes a mes. Lo que importa
+    no es cada barra suelta sino si la línea sube.</p>
+    <div id="grafAcum"></div>
+  </div>
+  <div class="tarjeta">
+    <h2>Resultado por año</h2>
+    <p class="nota">Clic en una barra para quedarte con ese año; vuelve a picarle para
+    verlos todos.</p>
+    <div id="grafAno"></div>
   </div>
   <div class="tarjeta">
     <h2>Estacionalidad</h2>
@@ -328,7 +327,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v66 · 19 ago 2026";
+var VERSION = "v67 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 //  Nombres completos para la lista de meses: el anio se elige arriba, asi
 //  que aqui basta con el mes y cabe escribirlo entero.
@@ -603,12 +602,6 @@ var pintaInst = botonera("chipsInst", "pistaInst", VAL_INST, instDe, "inst", nul
     llenarSelectores(); ajustarMeses();
     pintarBotoneras(); pintarEncabezado(); pintar();
   }, true);
-var pintaAno = botonera("chipsAno", null, VAL_ANOS,
-                        function(o){ return o.f.slice(0,4); }, "anos", null, true,
-  function(){
-    //  Cambiar de anio recorta los meses disponibles.
-    ajustarMeses(); pintarBotoneras(); pintar();
-  });
 
 //  Las dos cuentas se muestran SIEMPRE, aunque una este vacia.
 //  Antes la fila se escondia hasta que hubiera algo simulado, y el efecto
@@ -675,7 +668,7 @@ function pintaCuenta(){
   //  Sin nota al lado: el boton encendido ya dice de que cuenta se habla.
 }
 
-function pintarBotoneras(){ pintaCuenta(); pintaAno(); pintaInst(); }
+function pintarBotoneras(){ pintaCuenta(); pintaInst(); }
 
 // ---------------------------------------------------------------- selectores
 function llenar(sel, valores, etiqueta, todos){
@@ -796,93 +789,148 @@ function tar(k,v,s,cls){
 }
 
 // ---------------------------------------------------------------- barras por mes
-function grafMes(){
-  //  El grafico ignora el filtro de MES (si no, quedaria una sola barra)
-  //  pero respeta los demas: asi se puede ver una estrategia mes a mes.
-  var base = C.filter(function(o){
-    var s = F.mes; F.mes = ""; var r = pasa(o); F.mes = s; return r;
-  });
-  var m = {};
-  base.forEach(function(o){ var k=o.f.slice(0,7); m[k]=(m[k]||0)+o.g; });
-  var ks = Object.keys(m).sort();
-  if(!ks.length){ g("grafMes").innerHTML = '<p class="vacio">Nada con estos filtros.</p>'; return; }
+//  Marco pidio cambiar las barras por mes por la CURVA ACUMULADA: una barra
+//  suelta dice como fue ese mes, y lo que el quiere saber es si la suma
+//  sube. Es la misma informacion leida al reves, y contesta otra pregunta.
+function grafAcumulado(){
+  var v = vis().slice().sort(function(a,b){ return a.f < b.f ? -1 : a.f > b.f ? 1 : 0; });
+  if(!v.length){ g("grafAcum").innerHTML = '<p class="vacio">Nada con estos filtros.</p>'; return; }
 
-  var W = 560, H = 232, PL = 52, PR = 6, PT = 20, PB = 30;
+  //  Se acumula por MES y no por operacion: con miles de cierres la curva
+  //  por operacion es una mancha, y por mes se lee la tendencia.
+  var m = {}, orden = [];
+  v.forEach(function(o){
+    var k = o.f.slice(0,7);
+    if(m[k] === undefined){ m[k] = 0; orden.push(k); }
+    m[k] += o.g;
+  });
+  var acum = 0;
+  var pts = orden.map(function(k){ acum += m[k]; return {k:k, v:acum, mes:m[k]}; });
+
+  var W = 560, H = 232, PL = 58, PR = 8, PT = 14, PB = 28;
+  var iw = W-PL-PR, ih = H-PT-PB;
+  var vals = pts.map(function(p){ return p.v; });
+  var max = Math.max.apply(null, vals.concat([0])), min = Math.min.apply(null, vals.concat([0]));
+  var span = (max-min) || 1;
+  var px = function(i){ return PL + (pts.length===1 ? iw/2 : i*iw/(pts.length-1)); };
+  var py = function(x){ return PT + ((max-x)/span)*ih; };
+  var y0 = py(0);
+
+  var s = '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Resultado acumulado">';
+  [max, (max+min)/2, min].forEach(function(x){
+    var y = py(x);
+    s += '<line class="rej" x1="'+PL+'" y1="'+y.toFixed(1)+'" x2="'+(W-PR)+'" y2="'+y.toFixed(1)+'"/>'
+       + '<text class="eje" x="'+(PL-7)+'" y="'+(y+3).toFixed(1)+'" text-anchor="end">'+usd(x)+'</text>';
+  });
+  if(min < 0 && max > 0)
+    s += '<line class="cero" x1="'+PL+'" y1="'+y0.toFixed(1)+'" x2="'+(W-PR)+'" y2="'+y0.toFixed(1)+'"/>';
+
+  var d = pts.map(function(p,i){ return (i?"L":"M")+px(i).toFixed(1)+" "+py(p.v).toFixed(1); }).join(" ");
+  //  Relleno hasta la linea de cero: deja ver de un golpe cuanto tiempo se
+  //  estuvo en negativo, que en una linea sola cuesta notar.
+  var ult = pts.length-1;
+  var col = pts[ult].v >= 0 ? "var(--gana)" : "var(--pierde)";
+  s += '<path d="'+d+' L'+px(ult).toFixed(1)+' '+y0.toFixed(1)+' L'+px(0).toFixed(1)+' '+y0.toFixed(1)+' Z" '
+     + 'fill="'+col+'" opacity=".10"/>';
+  s += '<path d="'+d+'" fill="none" stroke="'+col+'" stroke-width="2" '
+     + 'stroke-linejoin="round" stroke-linecap="round"/>';
+  s += '<circle cx="'+px(ult).toFixed(1)+'" cy="'+py(pts[ult].v).toFixed(1)+'" r="3.5" fill="'+col+'"/>';
+
+  //  Solo las fechas que quepan abajo.
+  var cada = Math.max(1, Math.ceil(pts.length / Math.max(1, Math.floor(iw/48))));
+  pts.forEach(function(p,i){
+    if(i % cada && i !== ult) return;
+    s += '<text class="eje" x="'+px(i).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle">'+mesTxt(p.k)+'</text>';
+  });
+  //  zonas invisibles para el globo de datos
+  pts.forEach(function(p,i){
+    var an = pts.length>1 ? iw/(pts.length-1) : iw;
+    s += '<rect class="pt" data-i="'+i+'" x="'+(px(i)-an/2).toFixed(1)+'" y="'+PT+'" width="'+an.toFixed(1)+
+         '" height="'+ih+'" fill="transparent"/>';
+  });
+  s += '</svg>';
+  g("grafAcum").innerHTML = s;
+
+  Array.prototype.forEach.call(g("grafAcum").querySelectorAll(".pt"), function(el){
+    var p = pts[+el.dataset.i];
+    el.addEventListener("mousemove", function(e){
+      verTip(e, "<b>"+mesTxt(p.k)+"</b><br>acumulado "+usd(p.v)+"<br>ese mes "+usd(p.mes));
+    });
+    el.addEventListener("mouseleave", ocultaTip);
+  });
+}
+
+// ---------------------------------------------------------------- por anio
+//  Sustituye a la fila de botones de anio: da el dato y ademas filtra.
+function grafAno(){
+  //  Ignora el filtro de anio -- si no, quedaria una sola barra -- pero
+  //  respeta los demas.
+  var base = C.filter(function(o){
+    var g0 = F.anos; F.anos = null; var r = pasa(o); F.anos = g0; return r;
+  });
+  var m = {}, nOps = {};
+  base.forEach(function(o){
+    var k = o.f.slice(0,4);
+    m[k] = (m[k]||0) + o.g; nOps[k] = (nOps[k]||0) + 1;
+  });
+  var ks = Object.keys(m).sort();
+  if(!ks.length){ g("grafAno").innerHTML = '<p class="vacio">Nada con estos filtros.</p>'; return; }
+
+  var W = 560, H = 232, PL = 58, PR = 8, PT = 20, PB = 30;
   var iw = W-PL-PR, ih = H-PT-PB;
   var vals = ks.map(function(k){ return m[k]; });
   var max = Math.max.apply(null, vals.concat([0])), min = Math.min.apply(null, vals.concat([0]));
   var span = (max-min) || 1;
-  var y0 = PT + (max/span)*ih;                       // linea de cero
-  var bw = Math.max(5, Math.min(30, iw/ks.length - 5));
+  var y0 = PT + (max/span)*ih;
   var paso = iw/ks.length;
-  //  Con 6 anios de cripto son mas de 60 meses. Dibujar una etiqueta cada
-  //  dos (la regla vieja) daba 30 encimadas e ilegibles. Se calcula cuantas
-  //  caben de verdad: cada rotulo pide unos 34 px.
-  var cadaN = Math.max(1, Math.ceil(ks.length / Math.max(1, Math.floor(iw/34))));
-  //  El monto sobre la barra se mide por la SEPARACION entre barras, no por
-  //  el ancho de la barra: el texto puede volarse fuera de su barra, lo que
-  //  no puede es encimarse con el de al lado. Con 29 meses (IBKR) cabe;
-  //  con 56 (Binance) no.
-  var conMonto = paso >= 14;
+  var bw = Math.max(10, Math.min(56, paso - 14));
 
-  var s = '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Resultado por mes">';
-  //  rejilla y marcas del eje
-  [max, (max+min)/2, min].forEach(function(v){
-    var y = PT + ((max-v)/span)*ih;
-    s += '<line class="rej" x1="'+PL+'" y1="'+y.toFixed(1)+'" x2="'+(W-PR)+'" y2="'+y.toFixed(1)+'"/>';
-    s += '<text class="eje" x="'+(PL-7)+'" y="'+(y+3).toFixed(1)+'" text-anchor="end">'+usd(v)+'</text>';
+  var s = '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Resultado por anio">';
+  [max, (max+min)/2, min].forEach(function(x){
+    var y = PT + ((max-x)/span)*ih;
+    s += '<line class="rej" x1="'+PL+'" y1="'+y.toFixed(1)+'" x2="'+(W-PR)+'" y2="'+y.toFixed(1)+'"/>'
+       + '<text class="eje" x="'+(PL-7)+'" y="'+(y+3).toFixed(1)+'" text-anchor="end">'+usd(x)+'</text>';
   });
   s += '<line class="cero" x1="'+PL+'" y1="'+y0.toFixed(1)+'" x2="'+(W-PR)+'" y2="'+y0.toFixed(1)+'"/>';
 
+  //  Un anio esta "elegido" cuando es el unico encendido.
+  var encendidos = ks.filter(function(k){ return F.anos && F.anos[k]; });
   ks.forEach(function(k,i){
     var v = m[k];
-    var x = PL + i*paso + (paso-bw)/2;
     var alto = Math.abs(v)/span*ih;
     var y = v>=0 ? y0-alto : y0;
+    var x = PL + i*paso + (paso-bw)/2;
     var col = v>=0 ? "var(--gana)" : "var(--pierde)";
-    var r = Math.min(4, bw/2, alto);
-    s += '<g class="barmes" data-mes="'+k+'" tabindex="0">'
+    var r = Math.min(4, bw/2, alto/2);
+    var sel = encendidos.length === 1 && F.anos[k];
+    s += '<g class="barmes" data-a="'+k+'" tabindex="0">'
+       + '<rect x="'+(PL+i*paso).toFixed(1)+'" y="'+PT+'" width="'+paso.toFixed(1)+'" height="'+ih+
+         '" fill="'+(sel?"var(--acento-bg)":"transparent")+'"/>'
        + '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+
          '" height="'+Math.max(alto,1).toFixed(1)+'" rx="'+r.toFixed(1)+'" fill="'+col+'"/>'
-       + '<rect x="'+x.toFixed(1)+'" y="'+PT+'" width="'+bw.toFixed(1)+'" height="'+ih+'" fill="transparent"/>'
-       + (conMonto
-          ? '<text class="valor" x="'+(x+bw/2).toFixed(1)+'" y="'+(v>=0 ? (y-4).toFixed(1) : (y+alto+9).toFixed(1))+
-            '" text-anchor="middle" fill="'+col+'">'+corto(v)+'</text>'
-          : '')
+       + '<text class="valor" x="'+(x+bw/2).toFixed(1)+'" y="'+(v>=0 ? (y-4).toFixed(1) : (y+alto+9).toFixed(1))+
+         '" text-anchor="middle" fill="'+col+'">'+corto(v)+'</text>'
+       + '<text class="eje'+(sel?" elegido":"")+'" x="'+(x+bw/2).toFixed(1)+'" y="'+(H-8)+
+         '" text-anchor="middle">'+k+'</text>'
        + '</g>';
-    if(i % cadaN === 0)
-      s += '<text class="eje" x="'+(x+bw/2).toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle">'+mesTxt(k)+'</text>';
   });
   s += '</svg>';
-  g("grafMes").innerHTML = s;
+  g("grafAno").innerHTML = s;
 
-  Array.prototype.forEach.call(g("grafMes").querySelectorAll(".barmes"), function(el){
-    var k = el.dataset.mes;
-    var ops = base.filter(function(o){ return o.f.slice(0,7)===k; });
-    var x = ops.filter(function(o){return o.x;}).length;
+  Array.prototype.forEach.call(g("grafAno").querySelectorAll(".barmes"), function(el){
+    var k = el.dataset.a;
     el.addEventListener("mousemove", function(e){
-      verTip(e, "<b>"+mesTxt(k)+"</b><br>"+usd(m[k])+"<br>"+ops.length+" cierres · "+x+" expiradas");
+      verTip(e, "<b>"+k+"</b><br>"+usd(m[k])+"<br>"+nOps[k]+" cierres");
     });
     el.addEventListener("mouseleave", ocultaTip);
     el.addEventListener("click", function(){
-      var a = k.slice(0,4), mm = k.slice(5,7);
-      if(F.mes === mm && F.anos[a] && VAL_ANOS().filter(function(x){return F.anos[x];}).length === 1){
-        //  ya estaba justo ese mes de ese anio: el clic lo quita
-        F.mes = "";
-        reiniciar("anos", VAL_ANOS);
-        pintaAno();
-      } else {
-        //  la barra es un mes de un anio concreto, y el filtro de mes ya no
-        //  lleva anio: hay que encender los dos para caer en esa barra.
-        F.mes = mm;
-        VAL_ANOS().forEach(function(x){ F.anos[x] = (x === a); });
-        pintaAno();
-      }
+      var v = VAL_ANOS();
+      var solo = F.anos[k] && v.filter(function(x){ return F.anos[x]; }).length === 1;
+      v.forEach(function(x){ F.anos[x] = solo ? true : (x === k); });
       ajustarMeses(); ocultaTip(); pintar();
     });
   });
 }
-
 
 // ---------------------------------------------------------------- estacionalidad
 //  Responde otra pregunta que la grafica de meses: no "como me fue en mayo
@@ -1246,7 +1294,8 @@ function pintar(){
   var lim = g("limpiar");
   if(lim) lim.className = hayFiltros() ? "limpiar activo" : "limpiar";
   kpis();
-  grafMes();
+  grafAcumulado();
+  grafAno();
   grafEstacional();
   grafTk();
   var op = hayOpciones();
