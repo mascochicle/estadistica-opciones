@@ -554,7 +554,7 @@ g("ver").textContent = VERSION;
 //  AVISO DE VERSION NUEVA
 //  El service worker guarda la app para que funcione sin senal, y por eso
 //  una version nueva no entra sola. Aqui se busca al abrir, y si aparece
-//  se avisa en vez de dejar a Marco usando una version vieja sin saberlo.
+//  se avisa en vez de dejar a quien la usa con una version vieja sin saberlo.
 // =====================================================================
 if("serviceWorker" in navigator){
   navigator.serviceWorker.register("sw.js").then(function(reg){
