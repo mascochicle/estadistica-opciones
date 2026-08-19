@@ -318,7 +318,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v62 · 19 ago 2026";
+var VERSION = "v63 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 //  Nombres completos para la lista de meses: el anio se elige arriba, asi
 //  que aqui basta con el mes y cabe escribirlo entero.
@@ -567,7 +567,10 @@ var INST_PREFERIDO = "Acciones";
 function instPorDefecto(){
   var v = VAL_INST();
   reiniciar("inst", v);
-  if(v.indexOf(INST_PREFERIDO) >= 0){
+  //  Con "todas" las cuentas puestas, NO se aplica el instrumento preferido:
+  //  pedir todas las cuentas y recibir solo acciones es lo contrario de lo
+  //  que uno pide. Solo hay preferencia cuando se mira una cuenta sola.
+  if(F.cuenta !== TODAS && v.indexOf(INST_PREFERIDO) >= 0){
     v.forEach(function(x){ F.inst[x] = (x === INST_PREFERIDO); });
   }
 }
