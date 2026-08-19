@@ -51,12 +51,14 @@ header h1{font-size:27px;font-weight:660;letter-spacing:-.025em;margin:0;text-wr
 /*  La cuenta es el corte mas grueso: es contexto de TODO lo que sigue, no un
     filtro mas. Por eso vive en el encabezado y no en la botonera. Va sin
     recuadro: es un rotulo del encabezado, no otra tarjeta que compita.  */
-.cuentabox{display:flex;align-items:center;gap:9px}
+.arriba{display:flex;flex-direction:column;align-items:flex-end;gap:7px}
+.cuentabox{display:flex;align-items:center;gap:9px;flex-wrap:wrap;justify-content:flex-end}
 .cuentabox .etiq{font-size:10.5px;color:var(--tinta3);text-transform:uppercase;
   letter-spacing:.05em;font-weight:680}
 @media (max-width:700px){
   header{flex-direction:column}
-  .cuentabox{width:100%}
+  .arriba{align-items:flex-start;width:100%}
+  .cuentabox{width:100%;justify-content:flex-start}
 }
 header .sub{color:var(--tinta2);font-size:13.5px;margin:5px 0 0}
 .eyebrow{font-size:10.5px;letter-spacing:.15em;text-transform:uppercase;color:var(--tinta3);font-weight:680;margin:0 0 5px}
@@ -153,9 +155,15 @@ svg{display:block;width:100%;height:auto;overflow:visible}
     <h1>Estadística de Trading</h1>
     <p class="sub" id="rango"></p>
   </div>
-  <div class="cuentabox" id="filaCuenta">
-    <span class="etiq">Cuenta</span>
-    <div class="chips" id="chipsCuenta"></div>
+  <div class="arriba">
+    <div class="cuentabox" id="filaCuenta">
+      <span class="etiq">Cuenta</span>
+      <div class="chips" id="chipsCuenta"></div>
+    </div>
+    <div class="cuentabox" id="filaAno">
+      <span class="etiq">Año</span>
+      <div class="chips" id="chipsAno"></div>
+    </div>
   </div>
 </header>
 
@@ -179,7 +187,6 @@ svg{display:block;width:100%;height:auto;overflow:visible}
 <div class="filtros">
   <label>Estrategia <select id="fEst"></select></label>
   <label>Subyacente <select id="fTk"></select></label>
-  <label>Año <select id="fAno"></select></label>
   <label>Mes <select id="fMes"></select></label>
   <label>Plazo <select id="fPlazo"></select></label>
   <label>Cierre <select id="fCierre">
@@ -262,7 +269,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v28 · 19 ago 2026";
+var VERSION = "v29 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -319,7 +326,7 @@ var instDe = function(o){ return o["in"] || "Opciones"; };
 //  Los tres cortes que mas se comparan van como botones y no como listas:
 //  se pueden encender varios a la vez, o apagar los que estorben. Cada fila
 //  guarda el conjunto de los ENCENDIDOS; con todos encendidos no filtra.
-var F = {cuenta:"IBKR", inst:null, periodo:null, cp:null, plazo:"", est:"", tk:"", ano:"", mes:"", cierre:""};
+var F = {cuenta:"IBKR", inst:null, periodo:null, cp:null, anos:null, plazo:"", est:"", tk:"", mes:"", cierre:""};
 if(CUENTAS.indexOf(F.cuenta) < 0) F.cuenta = CUENTAS[0] || "IBKR";
 
 //  Todo lo demas se cuenta y se filtra DENTRO de la cuenta elegida, para
@@ -340,7 +347,7 @@ function pasa(o){
   if(F.cp && o.cp && !F.cp[o.cp]) return false;
   if(F.est     && (o.e||"(sin etiqueta)") !== F.est) return false;
   if(F.tk      && o.t !== F.tk) return false;
-  if(F.ano     && o.f.slice(0,4) !== F.ano) return false;
+  if(F.anos    && !F.anos[o.f.slice(0,4)]) return false;
   if(F.mes     && o.f.slice(0,7) !== F.mes) return false;
   if(F.cierre === "x" && !o.x) return false;
   if(F.cierre === "v" && o.x) return false;
@@ -436,6 +443,11 @@ function VAL_PERIODO(){
 function VAL_CP(){
   return ["C", "P"].filter(function(v){ return deCuenta().some(function(o){ return o.cp === v; }); });
 }
+function VAL_ANOS(){
+  //  Solo los anios en que de verdad hubo operaciones en la cuenta e
+  //  instrumento elegidos. De mas viejo a mas nuevo.
+  return uniq(deCuenta().map(function(o){ return o.f.slice(0,4); }));
+}
 function VAL_INST(){
   //  Solo los instrumentos que existen EN LA CUENTA elegida. IBKR no tiene
   //  cripto y Binance no tiene opciones: mostrarlos en cero es un boton
@@ -447,6 +459,7 @@ function VAL_INST(){
 var CP_ROTULO = function(v){ return v === "C" ? "Call" : "Put"; };
 
 reiniciar("inst",    VAL_INST);
+reiniciar("anos",    VAL_ANOS);
 reiniciar("periodo", VAL_PERIODO);
 reiniciar("cp",      VAL_CP);
 
@@ -461,10 +474,17 @@ var pintaInst = botonera("chipsInst", "pistaInst", VAL_INST, instDe, "inst", nul
     //  Arrastrarlos deja la pantalla vacia sin decir por que.
     reiniciar("periodo", VAL_PERIODO);
     reiniciar("cp", VAL_CP);
-    F.plazo = ""; F.est = ""; F.tk = ""; F.ano = ""; F.mes = ""; F.cierre = "";
-    ["fPlazo","fEst","fTk","fAno","fMes","fCierre"].forEach(function(i){ g(i).value = ""; });
+    F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = "";
+    reiniciar("anos", VAL_ANOS);
+    ["fPlazo","fEst","fTk","fMes","fCierre"].forEach(function(i){ g(i).value = ""; });
     llenarSelectores(); ajustarMeses();
     pintarBotoneras(); pintarEncabezado(); pintar();
+  });
+var pintaAno = botonera("chipsAno", null, VAL_ANOS,
+                        function(o){ return o.f.slice(0,4); }, "anos", null, true,
+  function(){
+    //  Cambiar de anio recorta los meses disponibles.
+    ajustarMeses(); pintarBotoneras(); pintar();
   });
 var pintaPeriodo = botonera("chipsPeriodo", "pistaPeriodo", VAL_PERIODO, grupo, "periodo", null, true);
 var pintaCP      = botonera("chipsCP",      "pistaCP",      VAL_CP,
@@ -507,8 +527,9 @@ function pintaCuenta(){
       //  por que, y parece que se rompio.
       reiniciar("periodo", VAL_PERIODO);
       reiniciar("cp", VAL_CP);
-      F.plazo = ""; F.est = ""; F.tk = ""; F.ano = ""; F.mes = ""; F.cierre = "";
-      ["fPlazo","fEst","fTk","fAno","fMes","fCierre"].forEach(function(i){ g(i).value = ""; });
+      F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = "";
+      reiniciar("anos", VAL_ANOS);
+      ["fPlazo","fEst","fTk","fMes","fCierre"].forEach(function(i){ g(i).value = ""; });
       llenarSelectores(); ajustarMeses();
       pintarBotoneras(); pintarEncabezado(); pintar();
     };
@@ -516,7 +537,7 @@ function pintaCuenta(){
   //  Sin nota al lado: el boton encendido ya dice de que cuenta se habla.
 }
 
-function pintarBotoneras(){ pintaCuenta(); pintaInst(); pintaPeriodo(); pintaCP(); }
+function pintarBotoneras(){ pintaCuenta(); pintaAno(); pintaInst(); pintaPeriodo(); pintaCP(); }
 
 // ---------------------------------------------------------------- selectores
 function llenar(sel, valores, etiqueta, todos){
@@ -534,16 +555,15 @@ function llenarSelectores(){
   llenar("fPlazo", uniq(B.map(function(o){return o.tp;})), null, "todos");
   llenar("fEst",  uniq(B.map(function(o){return o.e||"(sin etiqueta)";})), null, "todas");
   llenar("fTk",   uniq(B.map(function(o){return o.t;})), null, "todos");
-  llenar("fAno",  uniq(B.map(function(o){return o.f.slice(0,4);})), null, "todos");
   llenar("fMes",  uniq(B.map(function(o){return o.f.slice(0,7);})), mesTxt, "todos");
 }
 llenarSelectores();
 
-var FILTROS = ["fPlazo","fEst","fTk","fAno","fMes","fCierre"];
+var FILTROS = ["fPlazo","fEst","fTk","fMes","fCierre"];
 FILTROS.forEach(function(id){
   g(id).onchange = function(){
     F.plazo = g("fPlazo").value; F.est = g("fEst").value; F.tk = g("fTk").value;
-    F.ano = g("fAno").value; F.mes = g("fMes").value; F.cierre = g("fCierre").value;
+    F.mes = g("fMes").value; F.cierre = g("fCierre").value;
     //  El mes vive dentro de un ano: si se elige un ano, la lista de meses
     //  se recorta a los suyos, y un mes de otro ano se descarta en vez de
     //  dejar la vista vacia sin explicacion.
@@ -552,7 +572,8 @@ FILTROS.forEach(function(id){
   };
 });
 g("limpiar").onclick = function(){
-  F.plazo = ""; F.est = ""; F.tk = ""; F.ano = ""; F.mes = ""; F.cierre = "";
+  F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = "";
+  reiniciar("anos", VAL_ANOS);
   reiniciar("periodo", VAL_PERIODO);
     reiniciar("cp",      VAL_CP);
   pintarBotoneras();
@@ -562,7 +583,7 @@ g("limpiar").onclick = function(){
 };
 
 function ajustarMeses(){
-  var ms = uniq(deCuenta().filter(function(o){ return !F.ano || o.f.slice(0,4)===F.ano; })
+  var ms = uniq(deCuenta().filter(function(o){ return !F.anos || F.anos[o.f.slice(0,4)]; })
                  .map(function(o){ return o.f.slice(0,7); }));
   if(F.mes && ms.indexOf(F.mes) < 0) F.mes = "";
   llenar("fMes", ms, mesTxt, "todos");
@@ -679,7 +700,13 @@ function grafMes(){
     el.addEventListener("mouseleave", ocultaTip);
     el.addEventListener("click", function(){
       if(F.mes === k){ F.mes = ""; }
-      else { F.mes = k; F.ano = k.slice(0,4); g("fAno").value = F.ano; }
+      else {
+        //  al elegir un mes se enciende solo su anio, para que el mes exista
+        F.mes = k;
+        var a = k.slice(0,4);
+        VAL_ANOS().forEach(function(x){ F.anos[x] = (x === a); });
+        pintaAno();
+      }
       ajustarMeses(); ocultaTip(); pintar();
     });
   });
