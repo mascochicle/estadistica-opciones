@@ -230,7 +230,6 @@ svg{display:block;width:100%;height:auto;overflow:visible}
   <div class="grupo">
   <label class="soloOpciones" id="lblEst">Estrategia <select id="fEst"></select></label>
   <label class="soloOpciones" id="lblTipo">Tipo <select id="fTipo"></select></label>
-  <label>Mes <select id="fMes"></select></label>
   <label>Plazo <select id="fPlazo"></select></label>
   <label class="soloOpciones" id="lblCierre">Cierre <select id="fCierre">
     <option value="">todos</option>
@@ -254,6 +253,12 @@ svg{display:block;width:100%;height:auto;overflow:visible}
     <p class="nota">Arriba de la línea ganó, abajo perdió &mdash; la posición dice el signo,
     no hace falta distinguir el color. Clic en una barra para filtrar ese mes.</p>
     <div id="grafMes"></div>
+  </div>
+  <div class="tarjeta">
+    <h2>Estacionalidad</h2>
+    <p class="nota">El mismo mes de todos los años juntos: si enero se repite mal año
+    tras año, aquí se ve. Clic en una barra para quedarte con ese mes.</p>
+    <div id="grafEst"></div>
   </div>
   <div class="tarjeta">
     <h2 id="tGrafTk">Resultado por subyacente</h2>
@@ -318,7 +323,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v63 · 19 ago 2026";
+var VERSION = "v65 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 //  Nombres completos para la lista de meses: el anio se elige arriba, asi
 //  que aqui basta con el mes y cabe escribirlo entero.
@@ -589,7 +594,7 @@ var pintaInst = botonera("chipsInst", "pistaInst", VAL_INST, instDe, "inst", nul
     //  Arrastrarlos deja la pantalla vacia sin decir por que.
         F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = ""; F.etapa = ""; F.cp = "";
     reiniciar("anos", VAL_ANOS);
-    ["fPlazo","fEst","fMes","fCierre","fEtapa","fTipo"].forEach(function(i){ g(i).value = ""; });
+    ["fPlazo","fEst","fCierre","fEtapa","fTipo"].forEach(function(i){ g(i).value = ""; });
     llenarSelectores(); ajustarMeses();
     pintarBotoneras(); pintarEncabezado(); pintar();
   }, true);
@@ -657,7 +662,7 @@ function pintaCuenta(){
       instPorDefecto();
               F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = ""; F.etapa = ""; F.cp = "";
       reiniciar("anos", VAL_ANOS);
-      ["fPlazo","fEst","fMes","fCierre","fEtapa","fTipo"].forEach(function(i){ g(i).value = ""; });
+      ["fPlazo","fEst","fCierre","fEtapa","fTipo"].forEach(function(i){ g(i).value = ""; });
       llenarSelectores(); ajustarMeses();
       pintarBotoneras(); pintarEncabezado(); pintar();
     };
@@ -690,11 +695,11 @@ function llenarSelectores(){
 }
 llenarSelectores();
 
-var FILTROS = ["fPlazo","fEst","fMes","fCierre","fEtapa","fTipo"];
+var FILTROS = ["fPlazo","fEst","fCierre","fEtapa","fTipo"];
 FILTROS.forEach(function(id){
   g(id).onchange = function(){
     F.plazo = g("fPlazo").value; F.est = g("fEst").value;
-    F.mes = g("fMes").value; F.cierre = g("fCierre").value; F.etapa = g("fEtapa").value; F.cp = g("fTipo").value;
+    F.cierre = g("fCierre").value; F.etapa = g("fEtapa").value; F.cp = g("fTipo").value;
     //  El mes vive dentro de un ano: si se elige un ano, la lista de meses
     //  se recorta a los suyos, y un mes de otro ano se descarta en vez de
     //  dejar la vista vacia sin explicacion.
@@ -715,13 +720,12 @@ g("limpiar").onclick = function(){
 };
 
 function ajustarMeses(){
-  //  Solo los meses que existen en lo que se esta viendo, en orden de
-  //  calendario y no alfabetico.
+  //  Ya no hay lista de meses: el mes se elige picando una barra. Esto solo
+  //  suelta el filtro si el mes elegido dejo de existir al cambiar de anio,
+  //  que si no dejaria la pantalla vacia sin decir por que.
   var ms = uniq(deCuenta().filter(function(o){ return !F.anos || F.anos[o.f.slice(0,4)]; })
-                 .map(function(o){ return o.f.slice(5,7); })).sort();
+                 .map(function(o){ return o.f.slice(5,7); }));
   if(F.mes && ms.indexOf(F.mes) < 0) F.mes = "";
-  llenar("fMes", ms, mesLargo, "todos");
-  g("fMes").value = F.mes;
 }
 ajustarMeses();
 
@@ -874,6 +878,77 @@ function grafMes(){
   });
 }
 
+
+// ---------------------------------------------------------------- estacionalidad
+//  Responde otra pregunta que la grafica de meses: no "como me fue en mayo
+//  de 2025" sino "como me va en mayo, ano tras ano". Por eso junta el mismo
+//  mes de todos los anios a la vista y no lleva el anio en el rotulo.
+function grafEstacional(){
+  //  Ignora el filtro de mes -- si no, quedaria una sola barra -- pero
+  //  respeta los demas, igual que la grafica de meses.
+  var base = C.filter(function(o){
+    var s = F.mes; F.mes = ""; var r = pasa(o); F.mes = s; return r;
+  });
+  var m = {}, nOps = {};
+  base.forEach(function(o){
+    var k = o.f.slice(5,7);
+    m[k] = (m[k]||0) + o.g;
+    nOps[k] = (nOps[k]||0) + 1;
+  });
+  var ks = Object.keys(m).sort();
+  if(!ks.length){ g("grafEst").innerHTML = '<p class="vacio">Nada con estos filtros.</p>'; return; }
+
+  var W = 560, H = 232, PL = 52, PR = 6, PT = 20, PB = 30;
+  var iw = W-PL-PR, ih = H-PT-PB;
+  var vals = ks.map(function(k){ return m[k]; });
+  var max = Math.max.apply(null, vals.concat([0])), min = Math.min.apply(null, vals.concat([0]));
+  var span = (max-min) || 1;
+  var y0 = PT + (max/span)*ih;
+  var paso = iw/ks.length;
+  var bw = Math.max(6, Math.min(34, paso - 6));
+
+  var s = '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Estacionalidad por mes">';
+  [max, (max+min)/2, min].forEach(function(v){
+    var y = PT + ((max-v)/span)*ih;
+    s += '<line class="rej" x1="'+PL+'" y1="'+y.toFixed(1)+'" x2="'+(W-PR)+'" y2="'+y.toFixed(1)+'"/>';
+    s += '<text class="eje" x="'+(PL-7)+'" y="'+(y+3).toFixed(1)+'" text-anchor="end">'+usd(v)+'</text>';
+  });
+  s += '<line class="cero" x1="'+PL+'" y1="'+y0.toFixed(1)+'" x2="'+(W-PR)+'" y2="'+y0.toFixed(1)+'"/>';
+
+  ks.forEach(function(k,i){
+    var v = m[k];
+    var alto = Math.abs(v)/span*ih;
+    var y = v>=0 ? y0-alto : y0;
+    var x = PL + i*paso + (paso-bw)/2;
+    var col = v>=0 ? "var(--gana)" : "var(--pierde)";
+    var r = Math.min(3, bw/2, alto/2);
+    var sel = F.mes === k;
+    s += '<g class="barmes" data-mm="'+k+'" tabindex="0">'
+       + '<rect x="'+(PL+i*paso).toFixed(1)+'" y="'+PT+'" width="'+paso.toFixed(1)+'" height="'+ih+'" fill="'
+         +(sel?"var(--acento-bg)":"transparent")+'"/>'
+       + '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+
+         '" height="'+Math.max(alto,1).toFixed(1)+'" rx="'+r.toFixed(1)+'" fill="'+col+'"/>'
+       + '<text class="valor" x="'+(x+bw/2).toFixed(1)+'" y="'+(v>=0 ? (y-4).toFixed(1) : (y+alto+9).toFixed(1))+
+         '" text-anchor="middle" fill="'+col+'">'+corto(v)+'</text>'
+       + '<text class="eje'+(sel?" elegido":"")+'" x="'+(x+bw/2).toFixed(1)+'" y="'+(H-8)+
+         '" text-anchor="middle">'+MESES[+k-1]+'</text>'
+       + '</g>';
+  });
+  s += '</svg>';
+  g("grafEst").innerHTML = s;
+
+  Array.prototype.forEach.call(g("grafEst").querySelectorAll(".barmes"), function(el){
+    var k = el.dataset.mm;
+    el.addEventListener("mousemove", function(e){
+      verTip(e, "<b>"+mesLargo(k)+"</b><br>"+usd(m[k])+"<br>"+nOps[k]+" cierres");
+    });
+    el.addEventListener("mouseleave", ocultaTip);
+    el.addEventListener("click", function(){
+      F.mes = (F.mes === k) ? "" : k;
+      ocultaTip(); pintar();
+    });
+  });
+}
 
 // ---------------------------------------------------------------- por subyacente
 function grafTk(){
@@ -1167,6 +1242,7 @@ function pintar(){
   if(lim) lim.className = hayFiltros() ? "limpiar activo" : "limpiar";
   kpis();
   grafMes();
+  grafEstacional();
   grafTk();
   var op = hayOpciones();
   if(op) tabla("Est", "Estrategia", agrupar(function(o){return o.e||"(sin etiqueta)";}), ORD.est);
