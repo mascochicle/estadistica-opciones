@@ -316,15 +316,11 @@ svg{display:block;width:100%;height:auto;overflow:visible}
 
 <p class="divisor">Tablas</p>
 <div class="rejilla" id="rejTablas">
-  <div class="tarjeta" data-card="tablaActivo">
-    <h2 id="tTablaTk">Por subyacente</h2>
-    <p class="nota">Solo los que tienen 3 operaciones o más.</p>
-    <div class="scroll" style="max-height:300px"><table><thead><tr id="hTk"></tr></thead><tbody id="bTk"></tbody></table></div>
-    <div class="soloOpciones" id="cardCP">
-      <h2 style="margin-top:18px">Calls contra puts</h2>
-      <p class="nota">Apostar a que sube contra apostar a que baja.</p>
-      <table><thead><tr id="hCP"></tr></thead><tbody id="bCP"></tbody></table>
-    </div>
+  <div class="tarjeta soloOpciones" id="cardCP" data-card="callput">
+    <h2>Calls contra puts</h2>
+    <p class="nota">Apostar a que sube contra apostar a que baja. Clic en una fila
+    para quedarte con ese tipo.</p>
+    <table><thead><tr id="hCP"></tr></thead><tbody id="bCP"></tbody></table>
   </div>
   <div class="tarjeta soloOpciones" id="cardGrupo" data-card="grupo">
     <h2>Por grupo, y vendidas contra expiradas</h2>
@@ -367,7 +363,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v73 · 19 ago 2026";
+var VERSION = "v74 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 //  Nombres completos para la lista de meses: el anio se elige arriba, asi
 //  que aqui basta con el mes y cabe escribirlo entero.
@@ -1444,7 +1440,6 @@ function adaptarPanel(){
   //  En opciones el subyacente es otra cosa que lo que se compra; en
   //  acciones y cripto el activo es el mismo que se opera.
   poner("tGrafTk",  op ? "Resultado por subyacente" : "Resultado por activo");
-  poner("tTablaTk", op ? "Por subyacente" : "Por activo");
   poner("nGrafTk",  "Los doce que más pesan, ganando o perdiendo. A la derecha de la línea "
         + "ganó, a la izquierda perdió. Clic para filtrar ese " + (op ? "subyacente." : "activo."));
   poner("tPlazo",   op ? "Por plazo comprado" : "Por cuánto lo tuviste");
@@ -1477,8 +1472,6 @@ function pintar(){
   grafTk();
   var op = hayOpciones();
   if(op) grafEstrat();
-  tabla("Tk", op ? "Subyacente" : "Activo",
-        agrupar(function(o){return o.t;}).filter(function(e){return e.n>=3;}), ORD.tk);
   if(op){
     tabla("Cierre","Grupo", agrupar(grupo), ORD.cierre);
     tabla("CP",   "Tipo",   agrupar(function(o){ return o.cp==="C" ? "Call" : "Put"; }), ORD.cp);
