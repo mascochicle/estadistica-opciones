@@ -306,10 +306,6 @@ svg{display:block;width:100%;height:auto;overflow:visible}
     ganó, a la izquierda perdió. Clic para filtrar ese subyacente.</p>
     <div id="grafTk"></div>
   </div>
-</div>
-
-<p class="divisor">Estrategias</p>
-<div class="rejilla ancho" id="rejAncho">
   <div class="tarjeta soloOpciones" data-card="estrategia" id="cardEst">
     <h2>Por estrategia</h2>
     <p class="nota">Cada estrategia del seminario, de la que más dejó a la que más costó.
@@ -371,7 +367,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v72 · 19 ago 2026";
+var VERSION = "v73 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 //  Nombres completos para la lista de meses: el anio se elige arriba, asi
 //  que aqui basta con el mes y cabe escribirlo entero.
@@ -967,7 +963,11 @@ function grafEstrat(){
   var ks = Object.keys(m).sort(function(a,b){ return m[b] - m[a]; });
   if(!ks.length){ g("grafEstrat").innerHTML = '<p class="vacio">Nada con estos filtros.</p>'; return; }
 
-  var fila = 22, H = ks.length*fila + 16, W = 1140, PL = 190, PR = 96, PT = 6;
+  //  Mismas medidas que la grafica por activo, para que se vea igual de
+  //  grande que sus vecinas. Ojo: el SVG se escala al ancho de la tarjeta,
+  //  asi que dibujarla para 1140 px y meterla en 560 encogeria la letra a la
+  //  mitad. Hay que rehacer la geometria, no solo moverla de sitio.
+  var fila = 17, H = ks.length*fila + 14, W = 560, PL = 148, PR = 76, PT = 5;
   var iw = W - PL - PR;
   var vals = ks.map(function(k){ return m[k]; });
   var max = Math.max.apply(null, vals.concat([0])), min = Math.min.apply(null, vals.concat([0]));
@@ -979,7 +979,7 @@ function grafEstrat(){
   ks.forEach(function(k,i){
     var v = m[k];
     var y = PT + i*fila + 3;
-    var alto = fila - 8;
+    var alto = fila - 7;
     var ancho = Math.abs(v)/span*iw;
     var x = v>=0 ? x0 : x0-ancho;
     var col = v>=0 ? "var(--gana)" : "var(--pierde)";
