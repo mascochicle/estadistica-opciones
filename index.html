@@ -306,7 +306,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v46 · 19 ago 2026";
+var VERSION = "v47 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -527,8 +527,13 @@ function VAL_INST(){
   //  Solo los instrumentos que existen EN LA CUENTA elegida. IBKR no tiene
   //  cripto y Binance no tiene opciones: mostrarlos en cero es un boton
   //  muerto que solo estorba.
+  //
+  //  Se usa enCuentaElegida y no una comparacion directa: con "todas" la
+  //  comparacion nunca daba cierto, la lista salia vacia, y el filtro de
+  //  instrumento terminaba sin ningun valor encendido. Resultado: cero
+  //  operaciones justo al picarle a "todas".
   return INSTRUMENTOS.filter(function(v){
-    return C.some(function(o){ return cuentaDe(o) === F.cuenta && instDe(o) === v; });
+    return C.some(function(o){ return enCuentaElegida(o) && instDe(o) === v; });
   });
 }
 var CP_ROTULO = function(v){ return v === "C" ? "Call" : "Put"; };
