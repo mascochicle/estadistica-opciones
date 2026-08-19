@@ -45,7 +45,13 @@ body{
 body{padding-left:214px}
 @media (max-width:880px){body{padding-left:0}}
 .wrap{max-width:1180px;margin:0 auto;padding:24px 22px 64px;display:flex;flex-direction:column;gap:18px}
-.wrap > .sub{color:var(--tinta2);font-size:13.5px;margin:0}
+/*  Al irse la marca al riel, el contenido arrancaba con un renglon de texto
+    chico y se veia descabezado. Este titulo no repite el nombre del tablero
+    -- ese ya esta en el riel -- sino que dice QUE se esta viendo.  */
+.encab{display:flex;flex-direction:column;gap:4px}
+.encab h1{font-size:25px;font-weight:660;letter-spacing:-.025em;margin:0;line-height:1.2}
+.encab h1 .mut{font-weight:400;color:var(--tinta3)}
+.encab .sub{color:var(--tinta2);font-size:13.5px;margin:0}
 html{scroll-behavior:smooth}
 @media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
 .mono{font-family:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace}
@@ -347,7 +353,10 @@ svg{display:block;width:100%;height:auto;overflow:visible}
 </aside>
 
 <div class="wrap">
-<p class="sub" id="rango"></p>
+<header class="encab">
+  <h1 id="tituloCtx"></h1>
+  <p class="sub" id="rango"></p>
+</header>
 
 <!--  Los numeros van DEBAJO de los cortes que los producen: primero se
       elige que se esta mirando, y luego se lee el resultado de eso.  -->
@@ -436,7 +445,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v78 · 19 ago 2026";
+var VERSION = "v79 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 //  Nombres completos para la lista de meses: el anio se elige arriba, asi
 //  que aqui basta con el mes y cabe escribirlo entero.
@@ -1595,7 +1604,26 @@ function pintar(){
 //  El encabezado cuenta lo de la CUENTA que se esta viendo, no todo el
 //  archivo: decir "561 operaciones" mientras la pantalla muestra 12
 //  simuladas seria mentir en el renglon mas visible de la pagina.
+//  El titulo del contenido: instrumento y cuenta, que es justo lo que se
+//  acaba de elegir en el riel. Va con innerHTML porque la cuenta se pone en
+//  gris y el instrumento no.
+function tituloContexto(){
+  var e = g("tituloCtx");
+  if(!e) return;
+  var hay = VAL_INST();
+  var puestos = hay.filter(function(v){ return !F.inst || F.inst[v]; });
+  //  "Todo" solo cuando de verdad hay varios que juntar: en Binance el unico
+  //  instrumento es cripto, y decir "Todo en Binance" esconde el dato en vez
+  //  de darlo.
+  var inst = !puestos.length ? "Todo"
+           : (puestos.length === hay.length && hay.length > 1) ? "Todo"
+           : puestos.join(" y ");
+  var cta = F.cuenta === TODAS ? "todas las cuentas" : F.cuenta;
+  e.innerHTML = inst + ' <span class="mut">en ' + cta + "</span>";
+}
+
 function pintarEncabezado(){
+  tituloContexto();
   var B = deCuenta();
   if(!B.length){ g("rango").textContent = "sin operaciones en esta cuenta"; return; }
   var f = B.map(function(o){return o.f;}).sort();
