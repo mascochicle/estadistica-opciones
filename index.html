@@ -56,9 +56,13 @@ header h1{font-size:27px;font-weight:660;letter-spacing:-.025em;margin:0;text-wr
     y las tres se corren de lugar.
 
     Se hizo con una rejilla POR FILA y no con `display:contents` en el
-    contenedor. Contents daba el mismo acomodo, pero los botones dejaban de
-    recibir los clics: el boton estaba en su sitio y elementFromPoint lo
-    encontraba, y aun asi el evento no llegaba nunca.  */
+    contenedor. Las dos dan el mismo acomodo; esta se prefiere por ser mas
+    corriente.
+
+    (Se llego a culpar a `display:contents` de que los botones no
+    respondieran al clic. Era falso: fallaba la herramienta de automatizacion
+    que se estaba usando para probar, no la pagina. En un navegador de verdad
+    los clics funcionaban con contents igual que sin el.)  */
 .arriba{display:flex;flex-direction:column;gap:7px;max-width:min(100%,700px)}
 .cuentabox{display:grid;grid-template-columns:92px minmax(0,1fr);gap:9px;
   align-items:center}
@@ -279,7 +283,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v35 · 19 ago 2026";
+var VERSION = "v36 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
