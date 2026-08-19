@@ -4,7 +4,7 @@ Tablero de análisis para un registro de operaciones con opciones sobre acciones
 e índices. Página estática: sin dependencias externas, sin conexiones, sin
 seguimiento. Los datos van dentro del propio archivo.
 
-**[Ver el tablero →](https://mascochicle.github.io/estadistica-opciones/)**
+**[Ver el tablero →](https://mascochicle.github.io/estadistica-trading/)**
 
 ## Qué muestra
 
@@ -24,7 +24,7 @@ Además del tablero, el repositorio sirve una pequeña app instalable para anota
 la estrategia **en el momento de abrir** una operación — que es lo único que el
 extracto del bróker no puede saber.
 
-**[Abrir la app →](https://mascochicle.github.io/estadistica-opciones/captura/)**
+**[Abrir la app →](https://mascochicle.github.io/estadistica-trading/captura/)**
 
 Es una PWA: se instala en el teléfono, funciona sin señal y guarda en el propio
 aparato. Dos toques por operación; el resto de los datos llegan del extracto.
