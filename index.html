@@ -318,8 +318,13 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v60 · 19 ago 2026";
+var VERSION = "v61 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
+//  Nombres completos para la lista de meses: el anio se elige arriba, asi
+//  que aqui basta con el mes y cabe escribirlo entero.
+var MESES_LARGO = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio",
+                   "Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
+var mesLargo = function(mm){ return MESES_LARGO[+mm - 1] || mm; };
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
           {minimumFractionDigits:d,maximumFractionDigits:d}); };
@@ -431,7 +436,7 @@ function pasa(o){
   if(F.est     && (o.e||"(sin etiqueta)") !== F.est) return false;
   if(F.tk      && o.t !== F.tk) return false;
   if(F.anos    && !F.anos[o.f.slice(0,4)]) return false;
-  if(F.mes     && o.f.slice(0,7) !== F.mes) return false;
+  if(F.mes     && o.f.slice(5,7) !== F.mes) return false;
   if(F.cierre === "x" && !o.x) return false;
   if(F.cierre === "v" && o.x) return false;
   return true;
@@ -676,7 +681,6 @@ function llenarSelectores(){
   llenar("fEtapa", VAL_PERIODO(), null, "todas");
   llenar("fTipo", VAL_CP(), CP_ROTULO, "todos");
   llenar("fEst",  uniq(B.map(function(o){return o.e||"(sin etiqueta)";})), null, "todas");
-  llenar("fMes",  uniq(B.map(function(o){return o.f.slice(0,7);})), mesTxt, "todos");
 }
 llenarSelectores();
 
@@ -705,10 +709,12 @@ g("limpiar").onclick = function(){
 };
 
 function ajustarMeses(){
+  //  Solo los meses que existen en lo que se esta viendo, en orden de
+  //  calendario y no alfabetico.
   var ms = uniq(deCuenta().filter(function(o){ return !F.anos || F.anos[o.f.slice(0,4)]; })
-                 .map(function(o){ return o.f.slice(0,7); }));
+                 .map(function(o){ return o.f.slice(5,7); })).sort();
   if(F.mes && ms.indexOf(F.mes) < 0) F.mes = "";
-  llenar("fMes", ms, mesTxt, "todos");
+  llenar("fMes", ms, mesLargo, "todos");
   g("fMes").value = F.mes;
 }
 ajustarMeses();
@@ -844,11 +850,16 @@ function grafMes(){
     });
     el.addEventListener("mouseleave", ocultaTip);
     el.addEventListener("click", function(){
-      if(F.mes === k){ F.mes = ""; }
-      else {
-        //  al elegir un mes se enciende solo su anio, para que el mes exista
-        F.mes = k;
-        var a = k.slice(0,4);
+      var a = k.slice(0,4), mm = k.slice(5,7);
+      if(F.mes === mm && F.anos[a] && VAL_ANOS().filter(function(x){return F.anos[x];}).length === 1){
+        //  ya estaba justo ese mes de ese anio: el clic lo quita
+        F.mes = "";
+        reiniciar("anos", VAL_ANOS);
+        pintaAno();
+      } else {
+        //  la barra es un mes de un anio concreto, y el filtro de mes ya no
+        //  lleva anio: hay que encender los dos para caer en esa barra.
+        F.mes = mm;
         VAL_ANOS().forEach(function(x){ F.anos[x] = (x === a); });
         pintaAno();
       }
