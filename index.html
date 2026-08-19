@@ -269,7 +269,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v29 · 19 ago 2026";
+var VERSION = "v30 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -525,6 +525,13 @@ function pintaCuenta(){
       //  Al cambiar de cuenta los demas cortes se reinician: arrastrar el
       //  filtro de una cuenta a otra deja la pantalla en blanco sin decir
       //  por que, y parece que se rompio.
+      //
+      //  EL INSTRUMENTO VA PRIMERO, Y NO ES UN DETALLE. IBKR no tiene cripto
+      //  y Binance no tiene opciones: si el filtro de instrumento se queda
+      //  con el de la cuenta anterior, NADA pasa y el tablero sale en cero.
+      //  Ademas VAL_PERIODO y VAL_ANOS se calculan sobre deCuenta(), que ya
+      //  mira el instrumento, asi que tienen que correr despues de este.
+      reiniciar("inst", VAL_INST);
       reiniciar("periodo", VAL_PERIODO);
       reiniciar("cp", VAL_CP);
       F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = "";
