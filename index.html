@@ -306,7 +306,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v48 · 19 ago 2026";
+var VERSION = "v49 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -429,7 +429,7 @@ var vis = function(){ return C.filter(pasa); };
 //  exclusivo = los valores no se pueden combinar: o todos, o uno solo.
 //  Es el caso del periodo: son etapas distintas de la cuenta y juntar dos
 //  no responde ninguna pregunta.
-function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCambiar, sinConteo){
+function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCambiar, sinConteo, todosAlFinal){
   //  `valores` puede ser un arreglo fijo o una funcion. Lo segundo hace
   //  falta en el periodo: al cambiar de cuenta las etapas son otras, y
   //  dejar botones de la cuenta que no estas viendo, todos en cero, es
@@ -446,9 +446,9 @@ function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCa
     deCuenta().forEach(function(o){ var k = clave(o); cont.set(k, (cont.get(k)||0)+1); });
     var todos = cuantos() === valores.length;
     var cls = exclusivo ? "chip uno" : "chip";
-    var html = '<button class="'+cls+' todos" type="button" aria-pressed="'+todos+'" data-todos="1">'
-             + '<span class="marca">'+(todos?"✓":"")+'</span>todos</button>';
-    html += valores.map(function(v){
+    var btnTodos = '<button class="'+cls+' todos" type="button" aria-pressed="'+todos+'" data-todos="1">'
+                 + '<span class="marca">'+(todos?"✓":"")+'</span>todos</button>';
+    var html = valores.map(function(v){
       var on = F[campo][v];
       //  El conteo al lado de cada boton ayuda cuando son pocos, pero con
       //  siete anios la fila se vuelve larguisima. Ahi se omite: el total
@@ -458,7 +458,9 @@ function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCa
            + (sinConteo ? '' : ' <span style="opacity:.65">'+(cont.get(v)||0)+'</span>')
            + '</button>';
     }).join("");
-    g(destino).innerHTML = html;
+    //  "todos" al final donde Marco lo pidio asi (cuenta e instrumento);
+    //  en anio, periodo y tipo sigue abriendo la fila.
+    g(destino).innerHTML = todosAlFinal ? (html + btnTodos) : (btnTodos + html);
 
     Array.prototype.forEach.call(g(destino).querySelectorAll(".chip"), function(b){
       b.onclick = function(){
@@ -589,21 +591,22 @@ function pintaCuenta(){
   var nReales = C.filter(function(o){ return cuentaDe(o) !== SIMULADA; }).length;
   var htmlTodas = reales.length < 2 ? "" :
       '<button class="chip uno todos" type="button" aria-pressed="' + (F.cuenta === TODAS) + '"'
-    + ' data-v="' + TODAS + '" title="Suma las cuentas de dinero real. La simulada no se mezcla nunca.">'
-    + '<span class="marca">' + (F.cuenta === TODAS ? "✓" : "") + '</span>todas'
-    + ' <span style="opacity:.65">' + nReales + '</span></button>';
+    + ' data-v="' + TODAS + '" title="Suma las cuentas de dinero real (' + nReales
+    + ' operaciones). La simulada no se mezcla nunca.">'
+    + '<span class="marca">' + (F.cuenta === TODAS ? "✓" : "") + '</span>todas</button>';
 
   g("chipsCuenta").innerHTML = cuentasVisibles().map(function(v){
     var n = cont.get(v) || 0;
     var on = F.cuenta === v;
-    //  Sin operaciones no hay nada que ver: se deja apagado en vez de
-    //  dejar entrar a una pantalla vacia que parece que se rompio.
+    //  El conteo ya no se pinta (lo dice la tarjeta Operaciones), pero
+    //  sigue haciendo falta: sin operaciones el boton se deja apagado en vez
+    //  de dejar entrar a una pantalla vacia que parece que se rompio.
     var vacia = n === 0;
     return '<button class="chip uno" type="button" aria-pressed="'+on+'" data-v="'+v+'"'
          + (vacia ? ' disabled title="todavía no hay operaciones en esta cuenta"'
                     + ' style="opacity:.42;cursor:default"' : '')
          + '><span class="marca">'+(on?"✓":"")+'</span>'+v
-         + ' <span style="opacity:.65">'+n+'</span></button>';
+         + '</button>';
   }).join("") + htmlTodas;
   Array.prototype.forEach.call(g("chipsCuenta").querySelectorAll(".chip"), function(b){
     b.onclick = function(){
