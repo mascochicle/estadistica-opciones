@@ -283,7 +283,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v37 · 19 ago 2026";
+var VERSION = "v38 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -651,8 +651,9 @@ function kpis(){
   var enCuenta = deCuenta().length;
   g("kpis").innerHTML =
     tar("Operaciones", n.toLocaleString("en-US"),
-        n === enCuenta ? "todas las de esta cuenta"
-                       : "de " + enCuenta.toLocaleString("en-US") + " en la cuenta", "") +
+        //  "de N" a secas: decir "todas las de esta cuenta" mentia en cuanto
+        //  se filtraba por instrumento, porque N ya venia con ese filtro.
+        n === enCuenta ? "cerradas" : "de " + enCuenta.toLocaleString("en-US"), "") +
     tar("Resultado", usd(pnl), "neto de comisiones", pnl>=0?"pos":"neg") +
     tar("Aciertos", n?pct(gan.length/n*100):"—", gan.length+" de "+n, "") +
     (function(){
