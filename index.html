@@ -121,8 +121,9 @@ select:focus{outline:2px solid var(--acento);outline-offset:1px}
 /*  Una X y no "Limpiar filtros": el texto no cabia y el boton se caia a un
     segundo renglon. Se enciende en color cuando hay algo que limpiar, para
     que no sea una X muda que uno no sabe si hace algo.  */
-button.limpiar{background:transparent;border:1px solid var(--linea2);color:var(--tinta3);
-  border-radius:50%;width:28px;height:28px;padding:0;font:inherit;font-size:13px;
+button.limpiar{background:var(--panel);border:1px solid var(--linea2);color:var(--tinta3);
+  border-radius:50%;width:34px;height:34px;padding:0;font:inherit;font-size:14px;
+  box-shadow:var(--sombra);
   line-height:1;cursor:pointer;flex:none;display:grid;place-items:center;
   transition:color .12s,border-color .12s,background .12s}
 button.limpiar:hover{border-color:var(--tinta3);color:var(--tinta)}
@@ -135,10 +136,12 @@ button.limpiar:focus-visible{outline:2px solid var(--acento);outline-offset:2px}
     arrastra se saca del flujo y sigue al dedo SIN transicion ninguna --
     cualquier transicion ahi se siente como retraso -- y las demas se
     acomodan con una animacion corta.  */
-/*  Flotando abajo a la derecha y no en la fila de filtros: ahi apretaba a
-    los selectores y ademas no es un filtro, es un modo de la pagina.  */
-button.reord{position:fixed;right:20px;bottom:20px;z-index:40;
-  background:var(--panel);border:1px solid var(--linea2);color:var(--tinta2);
+/*  Los dos controles de la pagina -- limpiar y reordenar -- flotan abajo a
+    la derecha. Ya no hay barra de filtros donde ponerlos: todo se filtra
+    picando las graficas.  */
+.flotante{position:fixed;right:20px;bottom:20px;z-index:40;display:flex;
+  gap:8px;align-items:center}
+button.reord{background:var(--panel);border:1px solid var(--linea2);color:var(--tinta2);
   border-radius:999px;padding:9px 16px;font:inherit;font-size:12.5px;cursor:pointer;
   white-space:nowrap;box-shadow:var(--sombra)}
 button.reord:hover{border-color:var(--tinta3);color:var(--tinta)}
@@ -197,6 +200,9 @@ body.ordenando .rejilla{outline:1px dashed var(--linea2);outline-offset:9px;
     cuadrar, asi que el hueco desaparece pase lo que pase con los filtros.
     Se lee hacia abajo por la columna izquierda y luego la derecha.  */
 .rejilla{columns:2;column-gap:18px}
+/*  Un bloque de una sola columna, para lo que necesita ancho: con
+    veintitantas estrategias, a media pagina no se leen los nombres.  */
+.rejilla.ancho{columns:1}
 .rejilla > .tarjeta{break-inside:avoid;-webkit-column-break-inside:avoid;
   display:inline-block;width:100%;margin:0 0 18px}
 @media (max-width:880px){.rejilla{columns:1}}
@@ -210,6 +216,10 @@ th.izq{text-align:left} th.activa{color:var(--acento)}
 td{padding:6px 8px;text-align:right;border-bottom:1px solid var(--linea);white-space:nowrap}
 td.izq{text-align:left}
 tbody tr:hover td{background:var(--hundido)}
+/*  Las filas que filtran se pican; las que no, no. Se marca con el cursor
+    para que no haya que adivinar cual hace algo.  */
+tbody tr.pica{cursor:pointer}
+tbody tr.elegida td{background:var(--acento-bg);font-weight:620}
 .scroll{max-height:420px;overflow-y:auto;overflow-x:auto}
 .scroll thead th{position:sticky;top:0;background:var(--panel);z-index:2}
 .vacio{text-align:center;color:var(--tinta3);padding:26px;font-size:13px}
@@ -259,21 +269,6 @@ svg{display:block;width:100%;height:auto;overflow:visible}
   </div>
 </header>
 
-<div class="filtros">
-  <div class="grupo">
-  <label class="soloOpciones" id="lblEst">Estrategia <select id="fEst"></select></label>
-  <label class="soloOpciones" id="lblTipo">Tipo <select id="fTipo"></select></label>
-  <label class="soloOpciones" id="lblCierre">Cierre <select id="fCierre">
-    <option value="">todos</option>
-    <option value="v">vendidas</option>
-    <option value="x">expiradas</option>
-  </select></label>
-  <label class="soloOpciones" id="lblEtapa">Etapa <select id="fEtapa"></select></label>
-  </div>
-  <button class="limpiar" id="limpiar" type="button"
-          title="Limpiar filtros" aria-label="Limpiar filtros">&#10005;</button>
-</div>
-
 <!--  Los numeros van DEBAJO de los cortes que los producen: primero se
       elige que se esta mirando, y luego se lee el resultado de eso.  -->
 <div class="kpis" id="kpis"></div>
@@ -313,13 +308,18 @@ svg{display:block;width:100%;height:auto;overflow:visible}
   </div>
 </div>
 
+<p class="divisor">Estrategias</p>
+<div class="rejilla ancho" id="rejAncho">
+  <div class="tarjeta soloOpciones" data-card="estrategia" id="cardEst">
+    <h2>Por estrategia</h2>
+    <p class="nota">Cada estrategia del seminario, de la que más dejó a la que más costó.
+    Clic en una barra para quedarte con ella.</p>
+    <div id="grafEstrat"></div>
+  </div>
+</div>
+
 <p class="divisor">Tablas</p>
 <div class="rejilla" id="rejTablas">
-  <div class="tarjeta soloOpciones" id="cardEst" data-card="estrategia">
-    <h2>Por estrategia</h2>
-    <p class="nota">Clic en el encabezado para ordenar.</p>
-    <div class="scroll"><table><thead><tr id="hEst"></tr></thead><tbody id="bEst"></tbody></table></div>
-  </div>
   <div class="tarjeta" data-card="tablaActivo">
     <h2 id="tTablaTk">Por subyacente</h2>
     <p class="nota">Solo los que tienen 3 operaciones o más.</p>
@@ -349,8 +349,12 @@ svg{display:block;width:100%;height:auto;overflow:visible}
 <p class="pie" id="pie"></p>
 </div>
 
-<button class="reord" id="reordenar" type="button"
-        title="Reordenar las tarjetas arrastrándolas" aria-pressed="false">Reordenar</button>
+<div class="flotante">
+  <button class="limpiar" id="limpiar" type="button"
+          title="Limpiar filtros" aria-label="Limpiar filtros">&#10005;</button>
+  <button class="reord" id="reordenar" type="button"
+          title="Reordenar las tarjetas arrastrándolas" aria-pressed="false">Reordenar</button>
+</div>
 
 <div class="tip" id="tip"></div>
 
@@ -367,7 +371,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v70 · 19 ago 2026";
+var VERSION = "v71 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 //  Nombres completos para la lista de meses: el anio se elige arriba, asi
 //  que aqui basta con el mes y cabe escribirlo entero.
@@ -638,8 +642,7 @@ var pintaInst = botonera("chipsInst", "pistaInst", VAL_INST, instDe, "inst", nul
     //  Arrastrarlos deja la pantalla vacia sin decir por que.
         F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = ""; F.etapa = ""; F.cp = "";
     reiniciar("anos", VAL_ANOS);
-    ["fEst","fCierre","fEtapa","fTipo"].forEach(function(i){ g(i).value = ""; });
-    llenarSelectores(); ajustarMeses();
+ ajustarMeses();
     pintarBotoneras(); pintarEncabezado(); pintar();
   }, true);
 
@@ -704,8 +707,7 @@ function pintaCuenta(){
       instPorDefecto();
               F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = ""; F.etapa = ""; F.cp = "";
       reiniciar("anos", VAL_ANOS);
-      ["fEst","fCierre","fEtapa","fTipo"].forEach(function(i){ g(i).value = ""; });
-      llenarSelectores(); ajustarMeses();
+ ajustarMeses();
       pintarBotoneras(); pintarEncabezado(); pintar();
     };
   });
@@ -722,32 +724,6 @@ function llenar(sel, valores, etiqueta, todos){
 }
 
 
-//  Las listas se arman con las operaciones de la cuenta que se esta viendo:
-//  ofrecer un ticker que solo existe en la otra cuenta deja la pantalla
-//  vacia sin decir por que.
-function llenarSelectores(){
-  var B = deCuenta();
-  //  Las etapas del trading de opciones (Seminario 1 y 2, 0DTE, metodo
-  //  propio). Se llama Etapa y no Periodo porque "periodo" se lee como
-  //  plazo, que es otra cosa y ya tiene su propia columna.
-  llenar("fEtapa", VAL_PERIODO(), null, "todas");
-  llenar("fTipo", VAL_CP(), CP_ROTULO, "todos");
-  llenar("fEst",  uniq(B.map(function(o){return o.e||"(sin etiqueta)";})), null, "todas");
-}
-llenarSelectores();
-
-var FILTROS = ["fEst","fCierre","fEtapa","fTipo"];
-FILTROS.forEach(function(id){
-  g(id).onchange = function(){
-    F.est = g("fEst").value;
-    F.cierre = g("fCierre").value; F.etapa = g("fEtapa").value; F.cp = g("fTipo").value;
-    //  El mes vive dentro de un ano: si se elige un ano, la lista de meses
-    //  se recorta a los suyos, y un mes de otro ano se descarta en vez de
-    //  dejar la vista vacia sin explicacion.
-    ajustarMeses();
-    pintar();
-  };
-});
 g("limpiar").onclick = function(){
   F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = ""; F.etapa = ""; F.cp = "";
   //  Devuelve al arranque (Acciones), no a "todos": limpiar es volver a
@@ -755,7 +731,6 @@ g("limpiar").onclick = function(){
   instPorDefecto();
   reiniciar("anos", VAL_ANOS);
         pintarBotoneras();
-  FILTROS.forEach(function(i){ g(i).value = ""; });
   ajustarMeses();
   pintar();
 };
@@ -971,6 +946,67 @@ function grafAno(){
       var solo = F.anos[k] && v.filter(function(x){ return F.anos[x]; }).length === 1;
       v.forEach(function(x){ F.anos[x] = solo ? true : (x === k); });
       ajustarMeses(); ocultaTip(); pintar();
+    });
+  });
+}
+
+
+// ---------------------------------------------------------------- estrategias
+//  Era una tabla y una lista desplegable. Como grafica de ancho completo se
+//  ve de un golpe cual dejo dinero y cual lo quito, que con veintitantas
+//  estrategias en una tabla habia que ir leyendo renglon por renglon.
+function grafEstrat(){
+  var base = C.filter(function(o){
+    var s0 = F.est; F.est = ""; var r = pasa(o); F.est = s0; return r;
+  });
+  var m = {}, nOps = {};
+  base.forEach(function(o){
+    var k = o.e || "(sin etiqueta)";
+    m[k] = (m[k]||0) + o.g; nOps[k] = (nOps[k]||0) + 1;
+  });
+  var ks = Object.keys(m).sort(function(a,b){ return m[b] - m[a]; });
+  if(!ks.length){ g("grafEstrat").innerHTML = '<p class="vacio">Nada con estos filtros.</p>'; return; }
+
+  var fila = 22, H = ks.length*fila + 16, W = 1140, PL = 190, PR = 96, PT = 6;
+  var iw = W - PL - PR;
+  var vals = ks.map(function(k){ return m[k]; });
+  var max = Math.max.apply(null, vals.concat([0])), min = Math.min.apply(null, vals.concat([0]));
+  var span = (max-min) || 1;
+  var x0 = PL + (-min/span)*iw;
+
+  var s = '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Resultado por estrategia">';
+  s += '<line class="cero" x1="'+x0.toFixed(1)+'" y1="'+PT+'" x2="'+x0.toFixed(1)+'" y2="'+(PT+ks.length*fila)+'"/>';
+  ks.forEach(function(k,i){
+    var v = m[k];
+    var y = PT + i*fila + 3;
+    var alto = fila - 8;
+    var ancho = Math.abs(v)/span*iw;
+    var x = v>=0 ? x0 : x0-ancho;
+    var col = v>=0 ? "var(--gana)" : "var(--pierde)";
+    var r = Math.min(3, ancho/2, alto/2);
+    var sel = F.est === k;
+    s += '<g class="barmes" data-e="'+k+'" tabindex="0">'
+       + '<rect x="0" y="'+(y-3)+'" width="'+W+'" height="'+fila+'" rx="3" fill="'
+         +(sel?"var(--acento-bg)":"transparent")+'"/>'
+       + '<rect x="'+x.toFixed(1)+'" y="'+y+'" width="'+Math.max(ancho,1.5).toFixed(1)+
+         '" height="'+alto+'" rx="'+r.toFixed(1)+'" fill="'+col+'"/>'
+       + '<text class="eje'+(sel?" elegido":"")+'" x="'+(PL-9)+'" y="'+(y+alto-2)+'" text-anchor="end">'+k+'</text>'
+       + '<text class="eje" x="'+(W-PR+7)+'" y="'+(y+alto-2)+'" style="fill:'+col+'">'+usd(v)
+         +' <tspan class="mut">('+nOps[k]+')</tspan></text>'
+       + '</g>';
+  });
+  s += '</svg>';
+  g("grafEstrat").innerHTML = s;
+
+  Array.prototype.forEach.call(g("grafEstrat").querySelectorAll(".barmes"), function(el){
+    var k = el.dataset.e;
+    el.addEventListener("mousemove", function(e){
+      verTip(e, "<b>"+k+"</b><br>"+usd(m[k])+"<br>"+nOps[k]+" cierres");
+    });
+    el.addEventListener("mouseleave", ocultaTip);
+    el.addEventListener("click", function(){
+      F.est = (F.est === k) ? "" : k;
+      ocultaTip(); pintar();
     });
   });
 }
@@ -1282,13 +1318,29 @@ function tabla(pre, titulo, filas, orden){
     var r = (typeof x==="string") ? String(x).localeCompare(String(y)) : (x-y);
     return orden.d<0 ? -r : r;
   });
+  //  Algunas tablas filtran al picarles: al quitarse la barra de listas,
+  //  es el unico modo que queda de acotar por eso.
+  var campo = {CP:"cp", Cierre:"etapa"}[pre];
+  var valorDe = function(k){ return pre === "CP" ? (k === "Call" ? "C" : "P") : k; };
   g("b"+pre).innerHTML = filas.length ? filas.map(function(e){
-    return '<tr><td class="izq">'+e.k+'</td><td>'+e.n+'</td>'
+    var sel = campo && F[campo] === valorDe(e.k);
+    return '<tr'+(campo ? ' class="pica'+(sel?" elegida":"")+'" data-v="'+valorDe(e.k)+'"' : '')
+      + '><td class="izq">'+e.k+'</td><td>'+e.n+'</td>'
       + '<td><span class="barra"><span style="width:'+e.acierto.toFixed(0)+'%"></span></span> '+pct(e.acierto)+'</td>'
       + '<td title="ganancia promedio / pérdida promedio · a la derecha, lo que necesitaba con ese acierto">'+razonTxt(e.r)+'</td>'
       + (hayOpciones() ? '<td class="'+(e.tasaExp>40?"neg":"")+'">'+pct(e.tasaExp)+'</td>' : '')
       + '<td class="'+(e.pnl>=0?"pos":"neg")+'">'+usd(e.pnl)+'</td></tr>';
   }).join("") : '<tr><td colspan="'+COLS.length+'" class="vacio">Nada con estos filtros.</td></tr>';
+
+  if(campo){
+    Array.prototype.forEach.call(g("b"+pre).querySelectorAll("tr.pica"), function(tr){
+      tr.onclick = function(){
+        var v = tr.dataset.v;
+        F[campo] = (F[campo] === v) ? "" : v;
+        pintar();
+      };
+    });
+  }
 }
 
 // ---------------------------------------------------------------- vendidas vs expiradas
@@ -1298,9 +1350,12 @@ function grafCierre(){
   var pv = ven.reduce(function(a,o){return a+o.g;},0);
   var px = exp.reduce(function(a,o){return a+o.g;},0);
   var tope = Math.max(Math.abs(pv), Math.abs(px), 1);
-  function fila(nom, n, p){
+  function fila(nom, n, p, clave){
     var w = Math.abs(p)/tope*100;
-    return '<div style="margin-bottom:11px">'
+    var sel = F.cierre === clave;
+    return '<div class="pica" data-c="'+clave+'" style="margin-bottom:11px;cursor:pointer;'
+      + 'border-radius:7px;padding:4px 6px;margin-left:-6px;margin-right:-6px;'
+      + 'background:'+(sel?"var(--acento-bg)":"transparent")+'">'
       + '<div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px">'
       + '<span>'+nom+' <span class="mut">'+n+' ops</span></span>'
       + '<span class="'+(p>=0?"pos":"neg")+'" style="font-weight:640">'+usd(p)+'</span></div>'
@@ -1308,8 +1363,15 @@ function grafCierre(){
       + '<div style="height:100%;width:'+w.toFixed(1)+'%;border-radius:4px;background:'
       + (p>=0?"var(--gana)":"var(--pierde)")+'"></div></div></div>';
   }
-  g("grafCierre").innerHTML = fila("Vendidas antes de vencer", ven.length, pv)
-                            + fila("Expiradas sin valor", exp.length, px);
+  g("grafCierre").innerHTML = fila("Vendidas antes de vencer", ven.length, pv, "v")
+                            + fila("Expiradas sin valor", exp.length, px, "x");
+  Array.prototype.forEach.call(g("grafCierre").querySelectorAll(".pica"), function(el){
+    el.onclick = function(){
+      var c = el.dataset.c;
+      F.cierre = (F.cierre === c) ? "" : c;
+      pintar();
+    };
+  });
 }
 
 // ---------------------------------------------------------------- operaciones
@@ -1419,7 +1481,7 @@ function pintar(){
   grafPlazo();
   grafTk();
   var op = hayOpciones();
-  if(op) tabla("Est", "Estrategia", agrupar(function(o){return o.e||"(sin etiqueta)";}), ORD.est);
+  if(op) grafEstrat();
   tabla("Tk", op ? "Subyacente" : "Activo",
         agrupar(function(o){return o.t;}).filter(function(e){return e.n>=3;}), ORD.tk);
   if(op){
