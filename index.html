@@ -274,7 +274,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v33 · 19 ago 2026";
+var VERSION = "v34 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -678,9 +678,11 @@ function grafMes(){
   //  dos (la regla vieja) daba 30 encimadas e ilegibles. Se calcula cuantas
   //  caben de verdad: cada rotulo pide unos 34 px.
   var cadaN = Math.max(1, Math.ceil(ks.length / Math.max(1, Math.floor(iw/34))));
-  //  Lo mismo con el monto sobre la barra: si la barra es angosta, estorba
-  //  mas de lo que informa.
-  var conMonto = bw >= 17;
+  //  El monto sobre la barra se mide por la SEPARACION entre barras, no por
+  //  el ancho de la barra: el texto puede volarse fuera de su barra, lo que
+  //  no puede es encimarse con el de al lado. Con 29 meses (IBKR) cabe;
+  //  con 56 (Binance) no.
+  var conMonto = paso >= 14;
 
   var s = '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Resultado por mes">';
   //  rejilla y marcas del eje
@@ -933,8 +935,16 @@ function tablaOps(){
     var r = (typeof x==="string") ? String(x).localeCompare(String(y)) : (x-y);
     return o.d<0 ? -r : r;
   });
-  g("cuenta").textContent = "— "+arr.length+" de "+deCuenta().length;
-  g("bOps").innerHTML = arr.length ? arr.map(function(t){
+  //  Con Binance son 1,615 operaciones y dibujarlas todas deja la pagina
+  //  con 23,000 nodos y lenta de mover. En la tabla solo se ven ~15 a la
+  //  vez, asi que se dibuja un tope y SE DICE que se dibujo un tope: un
+  //  recorte callado se lee como "esto es todo" cuando no lo es.
+  var TOPE = 400;
+  var recortado = arr.length > TOPE;
+  var muestra = recortado ? arr.slice(0, TOPE) : arr;
+  g("cuenta").textContent = "— " + arr.length + " de " + deCuenta().length
+    + (recortado ? " · se listan las primeras " + TOPE : "");
+  g("bOps").innerHTML = arr.length ? muestra.map(function(t){
     return '<tr>'
       + '<td class="izq mut">'+t.f+'</td>'
       + '<td class="izq" style="font-weight:640">'+t.t+'</td>'
@@ -944,7 +954,11 @@ function tablaOps(){
       + '<td class="'+(t.g>=0?"pos":"neg")+'">'+usd(t.g)+'</td>'
       + '<td class="izq"><span class="pill '+(t.x?"exp":"ven")+'">'+(t.x?"expiró":"vendida")+'</span></td>'
       + '<td class="izq'+(t.e?"":" mut")+'">'+(t.e||"sin etiqueta")+'</td></tr>';
-  }).join("") : '<tr><td colspan="11" class="vacio">Nada con estos filtros.</td></tr>';
+  }).join("") + (recortado
+      ? '<tr><td colspan="11" class="vacio">Faltan ' + (arr.length - TOPE)
+        + ' operaciones. Acota con los filtros de arriba para verlas.</td></tr>'
+      : '')
+    : '<tr><td colspan="11" class="vacio">Nada con estos filtros.</td></tr>';
 }
 
 // ---------------------------------------------------------------- pintar todo
