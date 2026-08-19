@@ -367,7 +367,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v76 · 19 ago 2026";
+var VERSION = "v77 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 //  Nombres completos para la lista de meses: el anio se elige arriba, asi
 //  que aqui basta con el mes y cabe escribirlo entero.
@@ -806,6 +806,19 @@ function tar(k,v,s,cls){
 //  Marco pidio cambiar las barras por mes por la CURVA ACUMULADA: una barra
 //  suelta dice como fue ese mes, y lo que el quiere saber es si la suma
 //  sube. Es la misma informacion leida al reves, y contesta otra pregunta.
+
+//  ANCHO REAL, NO UNO INVENTADO
+//  Un SVG con viewBox se estira hasta llenar su hueco, y al estirarse escala
+//  TODO -- barras, ejes y letra. Dibujar siempre para 560 px y meter el
+//  dibujo en una tarjeta de 1140 no lo ensancha: lo amplifica al doble, y
+//  los rotulos salen enormes. Se dibuja con el ancho que el hueco tiene de
+//  verdad para que un pixel del dibujo sea un pixel de la pantalla.
+function anchoSVG(id){
+  var e = g(id);
+  var w = e ? Math.round(e.clientWidth) : 0;
+  return Math.max(360, w || 560);
+}
+
 function grafAcumulado(){
   var v = vis().slice().sort(function(a,b){ return a.f < b.f ? -1 : a.f > b.f ? 1 : 0; });
   if(!v.length){ g("grafAcum").innerHTML = '<p class="vacio">Nada con estos filtros.</p>'; return; }
@@ -821,7 +834,7 @@ function grafAcumulado(){
   var acum = 0;
   var pts = orden.map(function(k){ acum += m[k]; return {k:k, v:acum, mes:m[k]}; });
 
-  var W = 560, H = 232, PL = 58, PR = 8, PT = 14, PB = 28;
+  var W = anchoSVG("grafAcum"), H = 232, PL = 58, PR = 8, PT = 14, PB = 28;
   var iw = W-PL-PR, ih = H-PT-PB;
   var vals = pts.map(function(p){ return p.v; });
   var max = Math.max.apply(null, vals.concat([0])), min = Math.min.apply(null, vals.concat([0]));
@@ -890,7 +903,7 @@ function grafAno(){
   var ks = Object.keys(m).sort();
   if(!ks.length){ g("grafAno").innerHTML = '<p class="vacio">Nada con estos filtros.</p>'; return; }
 
-  var W = 560, H = 232, PL = 58, PR = 8, PT = 20, PB = 30;
+  var W = anchoSVG("grafAno"), H = 232, PL = 58, PR = 8, PT = 20, PB = 30;
   var iw = W-PL-PR, ih = H-PT-PB;
   var vals = ks.map(function(k){ return m[k]; });
   var max = Math.max.apply(null, vals.concat([0])), min = Math.min.apply(null, vals.concat([0]));
@@ -967,7 +980,7 @@ function grafEstrat(){
   //  grande que sus vecinas. Ojo: el SVG se escala al ancho de la tarjeta,
   //  asi que dibujarla para 1140 px y meterla en 560 encogeria la letra a la
   //  mitad. Hay que rehacer la geometria, no solo moverla de sitio.
-  var fila = 17, H = ks.length*fila + 14, W = 560, PL = 148, PR = 76, PT = 5;
+  var fila = 17, H = ks.length*fila + 14, W = anchoSVG("grafEstrat"), PL = 148, PR = 76, PT = 5;
   var iw = W - PL - PR;
   var vals = ks.map(function(k){ return m[k]; });
   var max = Math.max.apply(null, vals.concat([0])), min = Math.min.apply(null, vals.concat([0]));
@@ -1030,7 +1043,7 @@ function grafEstacional(){
   var ks = Object.keys(m).sort();
   if(!ks.length){ g("grafEst").innerHTML = '<p class="vacio">Nada con estos filtros.</p>'; return; }
 
-  var W = 560, H = 232, PL = 52, PR = 6, PT = 20, PB = 30;
+  var W = anchoSVG("grafEst"), H = 232, PL = 52, PR = 6, PT = 20, PB = 30;
   var iw = W-PL-PR, ih = H-PT-PB;
   var vals = ks.map(function(k){ return m[k]; });
   var max = Math.max.apply(null, vals.concat([0])), min = Math.min.apply(null, vals.concat([0]));
@@ -1105,7 +1118,7 @@ function grafPlazo(){
              .concat(Object.keys(m).filter(function(k){ return ORDEN_PLAZO.indexOf(k) < 0; }));
   if(!ks.length){ g("grafPlazo").innerHTML = '<p class="vacio">Nada con estos filtros.</p>'; return; }
 
-  var W = 560, H = 232, PL = 58, PR = 8, PT = 20, PB = 30;
+  var W = anchoSVG("grafPlazo"), H = 232, PL = 58, PR = 8, PT = 20, PB = 30;
   var iw = W-PL-PR, ih = H-PT-PB;
   var vals = ks.map(function(k){ return m[k]; });
   var max = Math.max.apply(null, vals.concat([0])), min = Math.min.apply(null, vals.concat([0]));
@@ -1178,7 +1191,7 @@ function grafTk(){
 
   //  fila de 18 y no de 15: los rotulos crecieron a 12px y a 15 se
   //  encimaban con el renglon de abajo.
-  var fila = 18, H = ks.length*fila + 30, W = 560, PL = 52, PR = 46, PT = 6;
+  var fila = 18, H = ks.length*fila + 30, W = anchoSVG("grafTk"), PL = 52, PR = 46, PT = 6;
   var iw = W - PL - PR;
   var vals = ks.map(function(k){ return m[k].pnl; });
   var max = Math.max.apply(null, vals.concat([0])), min = Math.min.apply(null, vals.concat([0]));
@@ -1487,6 +1500,9 @@ function anchoImpar(){
 
 function pintar(){
   adaptarPanel();
+  //  Antes de dibujar: es lo que decide si una tarjeta ocupa media pagina o
+  //  el renglon entero, y las graficas se dibujan a la medida de su hueco.
+  anchoImpar();
   var lim = g("limpiar");
   if(lim) lim.className = hayFiltros() ? "limpiar activo" : "limpiar";
   kpis();
@@ -1503,7 +1519,6 @@ function pintar(){
     grafCierre();
   }
   tablaOps();
-  anchoImpar();
 }
 
 // ---------------------------------------------------------------- arranque
@@ -1539,6 +1554,15 @@ pintarBotoneras();
 g("ver").textContent = VERSION;
 
 pintar();
+
+//  Redibujar al cambiar el ancho de la ventana, por lo mismo: el dibujo se
+//  hace a la medida del hueco y el hueco cambia. Con espera, para no rehacer
+//  todo en cada pixel del arrastre del borde.
+var _tempoAncho;
+window.addEventListener("resize", function(){
+  clearTimeout(_tempoAncho);
+  _tempoAncho = setTimeout(pintar, 180);
+});
 
 // =====================================================================
 //  REORDENAR TARJETAS ARRASTRANDO
@@ -1797,8 +1821,10 @@ pintar();
        "pointerEvents","transition"].forEach(function(k){ card.style[k] = ""; });
       card.classList.remove("enVuelo");
       limpiar();
-      anchoImpar();
       guardar();
+      //  Cambia quien ocupa el renglon entero, y con eso el ancho de los
+      //  dibujos: hay que rehacerlos, no solo moverlos.
+      pintar();
     };
     card.addEventListener("transitionend", terminar);
     setTimeout(terminar, 280);      // por si no llega el evento
@@ -1814,8 +1840,13 @@ pintar();
 
   conts.forEach(function(c){ c.addEventListener("pointerdown", alBajar); });
 
+  //  El orden guardado se aplica DESPUES del primer dibujo, asi que cambia
+  //  quien ocupa el renglon entero cuando las graficas ya estaban hechas a
+  //  otra medida. Sin este repintado, la que se ensancha sale con la letra
+  //  al doble y la que se angosta, ilegible.
   aplicarGuardado();
   anchoImpar();
+  pintar();
 })();
 
 })();
