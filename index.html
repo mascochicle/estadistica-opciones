@@ -129,6 +129,28 @@ button.limpiar:hover{border-color:var(--tinta3);color:var(--tinta)}
 button.limpiar.activo{border-color:var(--acento);color:var(--acento);background:var(--acento-bg)}
 button.limpiar:focus-visible{outline:2px solid var(--acento);outline-offset:2px}
 
+/*  REORDENAR TARJETAS
+    El arrastre no usa el drag-and-drop del navegador, que da tirones y no
+    deja controlar la animacion. Va con eventos de puntero: la tarjeta que se
+    arrastra se saca del flujo y sigue al dedo SIN transicion ninguna --
+    cualquier transicion ahi se siente como retraso -- y las demas se
+    acomodan con una animacion corta.  */
+button.reord{background:transparent;border:1px solid var(--linea2);color:var(--tinta2);
+  border-radius:8px;padding:5px 11px;font:inherit;font-size:12.5px;cursor:pointer;
+  flex:none;white-space:nowrap}
+button.reord:hover{border-color:var(--tinta3);color:var(--tinta)}
+button.reord[aria-pressed="true"]{background:var(--acento-bg);border-color:var(--acento);
+  color:var(--acento);font-weight:620}
+button.reord:focus-visible{outline:2px solid var(--acento);outline-offset:2px}
+
+.rejilla.ordenando .tarjeta{cursor:grab;user-select:none;
+  outline:1.5px dashed var(--linea2);outline-offset:-2px}
+.rejilla.ordenando .tarjeta:hover{outline-color:var(--acento)}
+.tarjeta.enVuelo{cursor:grabbing;box-shadow:0 14px 38px rgba(16,24,40,.25);
+  outline:1.5px solid var(--acento);will-change:transform}
+.hueco{border:1.5px dashed var(--acento);border-radius:12px;background:var(--acento-bg);
+  opacity:.55;break-inside:avoid;display:inline-block;width:100%;margin:0 0 18px}
+
 .botonera{background:var(--panel);border:1px solid var(--linea);border-radius:12px;
   padding:4px 13px;display:flex;flex-direction:column}
 .botonera .fila{display:flex;gap:11px;align-items:center;flex-wrap:wrap;padding:9px 0;
@@ -228,7 +250,6 @@ svg{display:block;width:100%;height:auto;overflow:visible}
   <div class="grupo">
   <label class="soloOpciones" id="lblEst">Estrategia <select id="fEst"></select></label>
   <label class="soloOpciones" id="lblTipo">Tipo <select id="fTipo"></select></label>
-  <label>Plazo <select id="fPlazo"></select></label>
   <label class="soloOpciones" id="lblCierre">Cierre <select id="fCierre">
     <option value="">todos</option>
     <option value="v">vendidas</option>
@@ -236,6 +257,8 @@ svg{display:block;width:100%;height:auto;overflow:visible}
   </select></label>
   <label class="soloOpciones" id="lblEtapa">Etapa <select id="fEtapa"></select></label>
   </div>
+  <button class="reord" id="reordenar" type="button"
+          title="Reordenar las tarjetas arrastrándolas" aria-pressed="false">Reordenar</button>
   <button class="limpiar" id="limpiar" type="button"
           title="Limpiar filtros" aria-label="Limpiar filtros">&#10005;</button>
 </div>
@@ -245,45 +268,46 @@ svg{display:block;width:100%;height:auto;overflow:visible}
 <div class="kpis" id="kpis"></div>
 
 
-<div class="rejilla">
-  <div class="tarjeta">
+<div class="rejilla" id="rejGraf">
+  <div class="tarjeta" data-card="acum">
     <h2>Resultado acumulado</h2>
     <p class="nota">La suma corrida de lo ganado y perdido, mes a mes. Lo que importa
     no es cada barra suelta sino si la línea sube.</p>
     <div id="grafAcum"></div>
   </div>
-  <div class="tarjeta">
+  <div class="tarjeta" data-card="ano">
     <h2>Resultado por año</h2>
     <p class="nota">Clic en una barra para quedarte con ese año; vuelve a picarle para
     verlos todos.</p>
     <div id="grafAno"></div>
   </div>
-  <div class="tarjeta">
+  <div class="tarjeta" data-card="estacional">
     <h2>Estacionalidad</h2>
     <p class="nota">El mismo mes de todos los años juntos: si enero se repite mal año
     tras año, aquí se ve. Clic en una barra para quedarte con ese mes.</p>
     <div id="grafEst"></div>
   </div>
-  <div class="tarjeta">
+  <div class="tarjeta" data-card="plazo">
+    <h2 id="tPlazo">Por plazo comprado</h2>
+    <p class="nota" id="nPlazo">El plazo se mide al abrir la posición: son los días que compraste,
+    no los que le quedaban al cerrar. Clic en una barra para quedarte con ese plazo.</p>
+    <div id="grafPlazo"></div>
+  </div>
+  <div class="tarjeta" data-card="grafActivo">
     <h2 id="tGrafTk">Resultado por subyacente</h2>
     <p class="nota" id="nGrafTk">Los doce que más pesan, ganando o perdiendo. A la derecha de la línea
     ganó, a la izquierda perdió. Clic para filtrar ese subyacente.</p>
     <div id="grafTk"></div>
   </div>
+</div>
 
-  <div class="tarjeta soloOpciones" id="cardEst">
+<div class="rejilla" id="rejTablas">
+  <div class="tarjeta soloOpciones" id="cardEst" data-card="estrategia">
     <h2>Por estrategia</h2>
     <p class="nota">Clic en el encabezado para ordenar.</p>
     <div class="scroll"><table><thead><tr id="hEst"></tr></thead><tbody id="bEst"></tbody></table></div>
   </div>
-  <div class="tarjeta">
-    <h2 id="tPlazo">Por plazo comprado</h2>
-    <p class="nota" id="nPlazo">El plazo se mide al abrir la posición: son los días que compraste,
-    no los que le quedaban al cerrar.</p>
-    <div class="scroll"><table><thead><tr id="hTipo"></tr></thead><tbody id="bTipo"></tbody></table></div>
-  </div>
-
-  <div class="tarjeta">
+  <div class="tarjeta" data-card="tablaActivo">
     <h2 id="tTablaTk">Por subyacente</h2>
     <p class="nota">Solo los que tienen 3 operaciones o más.</p>
     <div class="scroll" style="max-height:300px"><table><thead><tr id="hTk"></tr></thead><tbody id="bTk"></tbody></table></div>
@@ -293,7 +317,7 @@ svg{display:block;width:100%;height:auto;overflow:visible}
       <table><thead><tr id="hCP"></tr></thead><tbody id="bCP"></tbody></table>
     </div>
   </div>
-  <div class="tarjeta soloOpciones" id="cardGrupo">
+  <div class="tarjeta soloOpciones" id="cardGrupo" data-card="grupo">
     <h2>Por grupo, y vendidas contra expiradas</h2>
     <p class="nota">El curso tuvo dos partes &mdash; abril y agosto de 2025 &mdash; y separarlas
     importa, porque los resultados no se parecen. Abajo, cuánto pesa dejar expirar: una opción
@@ -327,7 +351,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v67 · 19 ago 2026";
+var VERSION = "v68 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 //  Nombres completos para la lista de meses: el anio se elige arriba, asi
 //  que aqui basta con el mes y cabe escribirlo entero.
@@ -598,7 +622,7 @@ var pintaInst = botonera("chipsInst", "pistaInst", VAL_INST, instDe, "inst", nul
     //  Arrastrarlos deja la pantalla vacia sin decir por que.
         F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = ""; F.etapa = ""; F.cp = "";
     reiniciar("anos", VAL_ANOS);
-    ["fPlazo","fEst","fCierre","fEtapa","fTipo"].forEach(function(i){ g(i).value = ""; });
+    ["fEst","fCierre","fEtapa","fTipo"].forEach(function(i){ g(i).value = ""; });
     llenarSelectores(); ajustarMeses();
     pintarBotoneras(); pintarEncabezado(); pintar();
   }, true);
@@ -660,7 +684,7 @@ function pintaCuenta(){
       instPorDefecto();
               F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = ""; F.etapa = ""; F.cp = "";
       reiniciar("anos", VAL_ANOS);
-      ["fPlazo","fEst","fCierre","fEtapa","fTipo"].forEach(function(i){ g(i).value = ""; });
+      ["fEst","fCierre","fEtapa","fTipo"].forEach(function(i){ g(i).value = ""; });
       llenarSelectores(); ajustarMeses();
       pintarBotoneras(); pintarEncabezado(); pintar();
     };
@@ -683,7 +707,6 @@ function llenar(sel, valores, etiqueta, todos){
 //  vacia sin decir por que.
 function llenarSelectores(){
   var B = deCuenta();
-  llenar("fPlazo", uniq(B.map(function(o){return o.tp;})), null, "todos");
   //  Las etapas del trading de opciones (Seminario 1 y 2, 0DTE, metodo
   //  propio). Se llama Etapa y no Periodo porque "periodo" se lee como
   //  plazo, que es otra cosa y ya tiene su propia columna.
@@ -693,10 +716,10 @@ function llenarSelectores(){
 }
 llenarSelectores();
 
-var FILTROS = ["fPlazo","fEst","fCierre","fEtapa","fTipo"];
+var FILTROS = ["fEst","fCierre","fEtapa","fTipo"];
 FILTROS.forEach(function(id){
   g(id).onchange = function(){
-    F.plazo = g("fPlazo").value; F.est = g("fEst").value;
+    F.est = g("fEst").value;
     F.cierre = g("fCierre").value; F.etapa = g("fEtapa").value; F.cp = g("fTipo").value;
     //  El mes vive dentro de un ano: si se elige un ano, la lista de meses
     //  se recorta a los suyos, y un mes de otro ano se descarta en vez de
@@ -1003,6 +1026,82 @@ function grafEstacional(){
   });
 }
 
+
+// ---------------------------------------------------------------- por plazo
+//  Antes era tabla. Como grafica se ve de un golpe donde esta el dinero, que
+//  con seis casillas es justo lo que se quiere.
+//
+//  El orden es el del calendario y no el alfabetico ni el del monto: la
+//  gracia de esta grafica es leer la pendiente segun se alarga el plazo, y
+//  eso solo se ve si las casillas van en orden de duracion.
+var ORDEN_PLAZO = ["Intradía","Semanal","Mensual","Anual","Mediano plazo",
+                   "Largo plazo","(sin plazo fiable)"];
+function grafPlazo(){
+  var base = C.filter(function(o){
+    var s0 = F.plazo; F.plazo = ""; var r = pasa(o); F.plazo = s0; return r;
+  });
+  var m = {}, nOps = {};
+  base.forEach(function(o){
+    var k = o.tp || "?";
+    m[k] = (m[k]||0) + o.g; nOps[k] = (nOps[k]||0) + 1;
+  });
+  var ks = ORDEN_PLAZO.filter(function(k){ return m[k] !== undefined; })
+             .concat(Object.keys(m).filter(function(k){ return ORDEN_PLAZO.indexOf(k) < 0; }));
+  if(!ks.length){ g("grafPlazo").innerHTML = '<p class="vacio">Nada con estos filtros.</p>'; return; }
+
+  var W = 560, H = 232, PL = 58, PR = 8, PT = 20, PB = 30;
+  var iw = W-PL-PR, ih = H-PT-PB;
+  var vals = ks.map(function(k){ return m[k]; });
+  var max = Math.max.apply(null, vals.concat([0])), min = Math.min.apply(null, vals.concat([0]));
+  var span = (max-min) || 1;
+  var y0 = PT + (max/span)*ih;
+  var paso = iw/ks.length;
+  var bw = Math.max(10, Math.min(52, paso - 14));
+
+  var s = '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Resultado por plazo">';
+  [max, (max+min)/2, min].forEach(function(x){
+    var y = PT + ((max-x)/span)*ih;
+    s += '<line class="rej" x1="'+PL+'" y1="'+y.toFixed(1)+'" x2="'+(W-PR)+'" y2="'+y.toFixed(1)+'"/>'
+       + '<text class="eje" x="'+(PL-7)+'" y="'+(y+3).toFixed(1)+'" text-anchor="end">'+usd(x)+'</text>';
+  });
+  s += '<line class="cero" x1="'+PL+'" y1="'+y0.toFixed(1)+'" x2="'+(W-PR)+'" y2="'+y0.toFixed(1)+'"/>';
+
+  ks.forEach(function(k,i){
+    var v = m[k];
+    var alto = Math.abs(v)/span*ih;
+    var y = v>=0 ? y0-alto : y0;
+    var x = PL + i*paso + (paso-bw)/2;
+    var col = v>=0 ? "var(--gana)" : "var(--pierde)";
+    var r = Math.min(4, bw/2, alto/2);
+    var sel = F.plazo === k;
+    //  Los nombres son largos y no caben derechos: se ponen inclinados.
+    s += '<g class="barmes" data-p="'+k+'" tabindex="0">'
+       + '<rect x="'+(PL+i*paso).toFixed(1)+'" y="'+PT+'" width="'+paso.toFixed(1)+'" height="'+ih+
+         '" fill="'+(sel?"var(--acento-bg)":"transparent")+'"/>'
+       + '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+
+         '" height="'+Math.max(alto,1).toFixed(1)+'" rx="'+r.toFixed(1)+'" fill="'+col+'"/>'
+       + '<text class="valor" x="'+(x+bw/2).toFixed(1)+'" y="'+(v>=0 ? (y-4).toFixed(1) : (y+alto+9).toFixed(1))+
+         '" text-anchor="middle" fill="'+col+'">'+corto(v)+'</text>'
+       + '<text class="eje'+(sel?" elegido":"")+'" x="'+(x+bw/2).toFixed(1)+'" y="'+(H-9)+
+         '" text-anchor="end" transform="rotate(-24 '+(x+bw/2).toFixed(1)+' '+(H-9)+')">'+k+'</text>'
+       + '</g>';
+  });
+  s += '</svg>';
+  g("grafPlazo").innerHTML = s;
+
+  Array.prototype.forEach.call(g("grafPlazo").querySelectorAll(".barmes"), function(el){
+    var k = el.dataset.p;
+    el.addEventListener("mousemove", function(e){
+      verTip(e, "<b>"+k+"</b><br>"+usd(m[k])+"<br>"+nOps[k]+" cierres");
+    });
+    el.addEventListener("mouseleave", ocultaTip);
+    el.addEventListener("click", function(){
+      F.plazo = (F.plazo === k) ? "" : k;
+      ocultaTip(); pintar();
+    });
+  });
+}
+
 // ---------------------------------------------------------------- por subyacente
 function grafTk(){
   //  Ignora el filtro de subyacente (si no quedaria una sola barra) pero
@@ -1297,10 +1396,10 @@ function pintar(){
   grafAcumulado();
   grafAno();
   grafEstacional();
+  grafPlazo();
   grafTk();
   var op = hayOpciones();
   if(op) tabla("Est", "Estrategia", agrupar(function(o){return o.e||"(sin etiqueta)";}), ORD.est);
-  tabla("Tipo", "Plazo", agrupar(function(o){return o.tp;}), ORD.tipo);
   tabla("Tk", op ? "Subyacente" : "Activo",
         agrupar(function(o){return o.t;}).filter(function(e){return e.n>=3;}), ORD.tk);
   if(op){
@@ -1344,6 +1443,211 @@ pintarBotoneras();
 g("ver").textContent = VERSION;
 
 pintar();
+
+// =====================================================================
+//  REORDENAR TARJETAS ARRASTRANDO
+//
+//  Lo dificil no es mover la tarjeta: es que el movimiento no tiemble.
+//  Tres decisiones para eso, y las tres importan.
+//
+//  1. La tarjeta arrastrada NO lleva transicion. Cualquier transicion sobre
+//     lo que sigue al dedo se siente como retraso o rebote. Va en position
+//     fixed con transform, que el navegador compone sin rehacer el diseno.
+//
+//  2. Las OTRAS si se animan, con la tecnica FLIP: se mide donde estaban,
+//     se cambia el orden, y se las manda de vuelta al punto viejo con
+//     transform para soltarlas enseguida. Se ve como un deslizamiento y no
+//     como un salto.
+//
+//  3. Histeresis y enfriamiento. Sin esto, con el puntero justo en el borde
+//     entre dos tarjetas el orden cambiaria ida y vuelta muchas veces por
+//     segundo -- eso es exactamente el temblor. Hay que pasar el centro por
+//     mas de 12 px, y no se reordena otra vez hasta 170 ms despues.
+// =====================================================================
+(function(){
+  var CLAVE = "ordenTarjetas";
+  var conts = Array.prototype.slice.call(document.querySelectorAll(".rejilla"));
+  var btn = g("reordenar");
+  if(!conts.length || !btn) return;
+
+  var modo = false, enVuelo = null, hueco = null;
+  var dx = 0, dy = 0, ultimoCambio = 0;
+
+  function todas(){
+    var out = [];
+    conts.forEach(function(c){
+      Array.prototype.forEach.call(c.children, function(e){
+        if(e.dataset && e.dataset.card && e !== enVuelo &&
+           getComputedStyle(e).display !== "none") out.push(e);
+      });
+    });
+    return out;
+  }
+
+  function guardar(){
+    try{
+      var m = {};
+      conts.forEach(function(c){
+        m[c.id] = Array.prototype.filter.call(c.children, function(e){
+          return e.dataset && e.dataset.card;
+        }).map(function(e){ return e.dataset.card; });
+      });
+      localStorage.setItem(CLAVE, JSON.stringify(m));
+    }catch(e){}
+  }
+
+  function aplicarGuardado(){
+    var m;
+    try{ m = JSON.parse(localStorage.getItem(CLAVE) || "null"); }catch(e){ return; }
+    if(!m) return;
+    conts.forEach(function(c){
+      var orden = m[c.id];
+      if(!orden) return;
+      //  Se mueve cada una al final en el orden guardado. Una tarjeta que no
+      //  este en la lista -- por ser nueva -- se queda donde estaba, que es
+      //  mejor que perderla.
+      orden.forEach(function(id){
+        var el = document.querySelector('[data-card="' + id + '"]');
+        if(el) c.appendChild(el);
+      });
+    });
+  }
+
+  //  FLIP: mide, deja que fn cambie el orden, y desliza lo que se movio.
+  function conFlip(fn){
+    var els = todas();
+    var antes = els.map(function(e){ return e.getBoundingClientRect(); });
+    fn();
+    els.forEach(function(e, i){
+      var a = antes[i], b = e.getBoundingClientRect();
+      var ddx = a.left - b.left, ddy = a.top - b.top;
+      if(!ddx && !ddy) return;
+      e.style.transition = "none";
+      e.style.transform = "translate(" + ddx + "px," + ddy + "px)";
+      //  Dos cuadros: uno para que el navegador acepte la posicion vieja y
+      //  otro para soltarla. Con uno solo a veces se salta la animacion.
+      requestAnimationFrame(function(){
+        requestAnimationFrame(function(){
+          e.style.transition = "transform .18s cubic-bezier(.2,.7,.3,1)";
+          e.style.transform = "";
+        });
+      });
+    });
+  }
+
+  function limpiar(){
+    conts.forEach(function(c){
+      Array.prototype.forEach.call(c.children, function(e){
+        e.style.transition = ""; e.style.transform = "";
+      });
+    });
+  }
+
+  function alBajar(e){
+    if(!modo || e.button) return;
+    var card = e.target.closest ? e.target.closest("[data-card]") : null;
+    if(!card) return;
+    e.preventDefault();
+
+    var r = card.getBoundingClientRect();
+    dx = e.clientX - r.left;
+    dy = e.clientY - r.top;
+
+    hueco = document.createElement("div");
+    hueco.className = "hueco";
+    hueco.style.height = r.height + "px";
+    card.parentNode.insertBefore(hueco, card);
+
+    enVuelo = card;
+    card.classList.add("enVuelo");
+    card.style.position = "fixed";
+    card.style.margin = "0";
+    card.style.width = r.width + "px";
+    card.style.left = "0";
+    card.style.top = "0";
+    card.style.transform = "translate(" + r.left + "px," + r.top + "px)";
+    card.style.zIndex = "60";
+    card.style.pointerEvents = "none";
+    card.style.transition = "none";
+
+    window.addEventListener("pointermove", alMover);
+    window.addEventListener("pointerup", alSoltar);
+    window.addEventListener("pointercancel", alSoltar);
+  }
+
+  function alMover(e){
+    if(!enVuelo) return;
+    enVuelo.style.transform =
+      "translate(" + (e.clientX - dx) + "px," + (e.clientY - dy) + "px)";
+
+    var ahora = e.timeStamp || Date.now();
+    if(ahora - ultimoCambio < 170) return;         // enfriamiento
+
+    var objetivo = null, antes = false;
+    todas().some(function(el){
+      var r = el.getBoundingClientRect();
+      if(e.clientX < r.left || e.clientX > r.right) return false;
+      if(e.clientY < r.top || e.clientY > r.bottom) return false;
+      var medio = r.top + r.height / 2;
+      if(Math.abs(e.clientY - medio) < 12) return false;   // histeresis
+      objetivo = el;
+      antes = e.clientY < medio;
+      return true;
+    });
+    if(!objetivo) return;
+
+    var destino = antes ? objetivo : objetivo.nextSibling;
+    if(destino === hueco) return;                  // ya esta ahi
+
+    ultimoCambio = ahora;
+    conFlip(function(){ objetivo.parentNode.insertBefore(hueco, destino); });
+  }
+
+  function alSoltar(){
+    window.removeEventListener("pointermove", alMover);
+    window.removeEventListener("pointerup", alSoltar);
+    window.removeEventListener("pointercancel", alSoltar);
+    if(!enVuelo) return;
+
+    var card = enVuelo, sitio = hueco.getBoundingClientRect();
+    var listo = false;
+
+    //  Se acomoda con una animacion corta hasta el hueco antes de soltarla,
+    //  para que no aparezca de golpe en otro lado.
+    card.style.transition = "transform .16s cubic-bezier(.2,.7,.3,1)";
+    card.style.transform = "translate(" + sitio.left + "px," + sitio.top + "px)";
+
+    var terminar = function(){
+      if(listo) return;
+      listo = true;
+      card.removeEventListener("transitionend", terminar);
+      if(hueco && hueco.parentNode){
+        hueco.parentNode.insertBefore(card, hueco);
+        hueco.parentNode.removeChild(hueco);
+      }
+      hueco = null; enVuelo = null;
+      ["position","margin","width","left","top","transform","zIndex",
+       "pointerEvents","transition"].forEach(function(k){ card.style[k] = ""; });
+      card.classList.remove("enVuelo");
+      limpiar();
+      guardar();
+    };
+    card.addEventListener("transitionend", terminar);
+    setTimeout(terminar, 280);      // por si no llega el evento
+  }
+
+  btn.addEventListener("click", function(){
+    modo = !modo;
+    btn.setAttribute("aria-pressed", modo);
+    btn.textContent = modo ? "Listo" : "Reordenar";
+    conts.forEach(function(c){ c.classList.toggle("ordenando", modo); });
+  });
+
+  conts.forEach(function(c){ c.addEventListener("pointerdown", alBajar); });
+
+  aplicarGuardado();
+})();
+
 })();
 
 </script>
