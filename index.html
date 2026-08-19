@@ -306,7 +306,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v47 · 19 ago 2026";
+var VERSION = "v48 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -559,7 +559,7 @@ var pintaInst = botonera("chipsInst", "pistaInst", VAL_INST, instDe, "inst", nul
     ["fPlazo","fEst","fTk","fMes","fCierre"].forEach(function(i){ g(i).value = ""; });
     llenarSelectores(); ajustarMeses();
     pintarBotoneras(); pintarEncabezado(); pintar();
-  });
+  }, false, true);
 var pintaAno = botonera("chipsAno", null, VAL_ANOS,
                         function(o){ return o.f.slice(0,4); }, "anos", null, true,
   function(){
@@ -593,7 +593,7 @@ function pintaCuenta(){
     + '<span class="marca">' + (F.cuenta === TODAS ? "✓" : "") + '</span>todas'
     + ' <span style="opacity:.65">' + nReales + '</span></button>';
 
-  g("chipsCuenta").innerHTML = htmlTodas + cuentasVisibles().map(function(v){
+  g("chipsCuenta").innerHTML = cuentasVisibles().map(function(v){
     var n = cont.get(v) || 0;
     var on = F.cuenta === v;
     //  Sin operaciones no hay nada que ver: se deja apagado en vez de
@@ -604,7 +604,7 @@ function pintaCuenta(){
                     + ' style="opacity:.42;cursor:default"' : '')
          + '><span class="marca">'+(on?"✓":"")+'</span>'+v
          + ' <span style="opacity:.65">'+n+'</span></button>';
-  }).join("");
+  }).join("") + htmlTodas;
   Array.prototype.forEach.call(g("chipsCuenta").querySelectorAll(".chip"), function(b){
     b.onclick = function(){
       if(b.disabled) return;
