@@ -155,7 +155,8 @@ button.reord:focus-visible{outline:2px solid var(--acento);outline-offset:2px}
 .tarjeta.enVuelo{cursor:grabbing;box-shadow:0 14px 38px rgba(16,24,40,.25);
   outline:1.5px solid var(--acento);will-change:transform}
 .hueco{border:1.5px dashed var(--acento);border-radius:12px;background:var(--acento-bg);
-  opacity:.55;break-inside:avoid;display:inline-block;width:100%;margin:0 0 18px}
+  opacity:.55;margin:0}
+.hueco.sola{grid-column:1/-1}
 
 /*  DIVISOR DE ORGANIZACION
     Marca donde acaban las graficas y empiezan las tablas. No se ve en el uso
@@ -167,25 +168,6 @@ body.ordenando .divisor{display:block}
 body.ordenando .rejilla{outline:1px dashed var(--linea2);outline-offset:9px;
   border-radius:4px}
 
-/*  AL REORDENAR, CASILLAS EN LUGAR DE COLUMNAS
-    El acomodo normal es en columnas: cada tarjeta se pega a la de arriba y no
-    quedan boquetes. Eso se ve bien, pero para arrastrar es enganoso -- la
-    columna corta termina antes y deja un vacio de cientos de pixeles que no
-    es de nadie, y soltar ahi no puede hacer lo que uno espera porque en un
-    flujo de columnas nadie elige en que columna cae una tarjeta: la elige el
-    navegador segun las alturas.
-    Mientras dura el modo se cambia a una rejilla de casillas, donde cada
-    tarjeta ocupa una y el sitio donde se suelta ES el sitio donde queda. La
-    casilla de mas al final -- el ::after -- es el "al final de todo", que
-    antes no existia en ningun lado.  */
-body.ordenando .rejilla{columns:auto;display:grid;grid-template-columns:1fr 1fr;
-  gap:18px;align-items:start}
-body.ordenando .rejilla.ancho{grid-template-columns:1fr}
-body.ordenando .rejilla > .tarjeta,
-body.ordenando .rejilla > .hueco{display:block;width:auto;margin:0}
-body.ordenando .rejilla::after{content:"";border:1.5px dashed var(--linea2);
-  border-radius:12px;min-height:70px;opacity:.7}
-@media (max-width:880px){body.ordenando .rejilla{grid-template-columns:1fr}}
 
 .botonera{background:var(--panel);border:1px solid var(--linea);border-radius:12px;
   padding:4px 13px;display:flex;flex-direction:column}
@@ -211,21 +193,23 @@ body.ordenando .rejilla::after{content:"";border:1.5px dashed var(--linea2);
   padding:15px 17px 17px;box-shadow:var(--sombra)}
 .tarjeta h2{font-size:14px;font-weight:660;margin:0 0 2px;letter-spacing:-.01em}
 .tarjeta .nota{font-size:12px;color:var(--tinta3);margin:0 0 12px;max-width:70ch}
-/*  ACOMODO EN COLUMNAS, no en rejilla de renglones.
-    La rejilla alineaba por renglones: si una tarjeta era mas alta que su
-    vecina, la vecina dejaba un hueco hasta que empezaba el renglon
-    siguiente. Con tarjetas de altura muy distinta -- la de operaciones
-    contra la de calls y puts -- quedaban boquetes por todos lados.
-    En columnas cada tarjeta se pega a la de arriba y no hay renglones que
-    cuadrar, asi que el hueco desaparece pase lo que pase con los filtros.
-    Se lee hacia abajo por la columna izquierda y luego la derecha.  */
-.rejilla{columns:2;column-gap:18px}
+/*  ACOMODO EN CASILLAS
+    Estuvo un tiempo en columnas -- `columns:2` -- porque asi cada tarjeta se
+    pega a la de arriba y no quedan boquetes. Se cambio por esto cuando Marco
+    empezo a acomodarlas a mano: en un flujo de columnas NADIE elige en que
+    columna cae una tarjeta, la elige el navegador segun las alturas, asi que
+    la soltaba a la derecha y al terminar se regresaba sola. Con casillas la
+    posicion es el orden, y lo que uno acomoda se queda.
+    El boqueton de antes no vuelve porque las tarjetas del mismo renglon se
+    estiran a la misma altura -- se rellena con la tarjeta, no con vacio -- y
+    porque si el numero es impar la ultima ocupa el renglon entero.  */
+.rejilla{display:grid;grid-template-columns:1fr 1fr;gap:18px}
 /*  Un bloque de una sola columna, para lo que necesita ancho: con
     veintitantas estrategias, a media pagina no se leen los nombres.  */
-.rejilla.ancho{columns:1}
-.rejilla > .tarjeta{break-inside:avoid;-webkit-column-break-inside:avoid;
-  display:inline-block;width:100%;margin:0 0 18px}
-@media (max-width:880px){.rejilla{columns:1}}
+.rejilla.ancho{grid-template-columns:1fr}
+.rejilla > .tarjeta{display:flex;flex-direction:column;margin:0;min-width:0}
+.rejilla > .tarjeta.sola{grid-column:1/-1}
+@media (max-width:880px){.rejilla{grid-template-columns:1fr}}
 
 table{width:100%;border-collapse:collapse;font-size:12.5px}
 th{text-align:right;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;
@@ -383,7 +367,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v75 · 19 ago 2026";
+var VERSION = "v76 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 //  Nombres completos para la lista de meses: el anio se elige arriba, asi
 //  que aqui basta con el mes y cabe escribirlo entero.
@@ -1480,6 +1464,27 @@ function hayFiltros(){
   return VAL_ANOS().some(function(x){ return !F.anos[x]; });
 }
 
+
+//  Si en un bloque queda un numero impar de tarjetas, la ultima se lleva el
+//  renglon entero. Si no, quedaria media pagina en blanco a su derecha --
+//  justo el boqueton que las columnas evitaban.
+//
+//  El numero cambia solo: al pasar de opciones a acciones se esconden tres
+//  tarjetas. Por eso se recalcula en cada pintada y tambien mientras se
+//  arrastra, contando el hueco como una mas.
+function anchoImpar(){
+  Array.prototype.forEach.call(document.querySelectorAll(".rejilla"), function(c){
+    var vis = Array.prototype.filter.call(c.children, function(e){
+      if(e.classList.contains("enVuelo")) return false;
+      if(!e.classList.contains("hueco") && !(e.dataset && e.dataset.card)) return false;
+      return getComputedStyle(e).display !== "none";
+    });
+    vis.forEach(function(e, i){
+      e.classList.toggle("sola", vis.length % 2 === 1 && i === vis.length - 1);
+    });
+  });
+}
+
 function pintar(){
   adaptarPanel();
   var lim = g("limpiar");
@@ -1498,6 +1503,7 @@ function pintar(){
     grafCierre();
   }
   tablaOps();
+  anchoImpar();
 }
 
 // ---------------------------------------------------------------- arranque
@@ -1657,6 +1663,8 @@ pintar();
 
     enVuelo = card;
     card.classList.add("enVuelo");
+    card.classList.remove("sola");
+    anchoImpar();
     card.style.position = "fixed";
     card.style.margin = "0";
     card.style.width = r.width + "px";
@@ -1714,10 +1722,16 @@ pintar();
     if(!enVuelo) return;
     if(ahora - ultimoCambio < 170) return;        // enfriamiento
 
-    var bloque = null;
+    //  El bloque se estira 70 px por abajo y por arriba para atraparlo. Sin
+    //  ese margen, "ponla al final" solo existiria en los pocos pixeles que
+    //  sobran del ultimo renglon: en cuanto se pasa uno tantito, el puntero
+    //  cae en la tierra de nadie entre los dos bloques y no pasa nada.
+    var bloque = null, cerca = Infinity;
     conts.forEach(function(c){
       var r = c.getBoundingClientRect();
-      if(x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) bloque = c;
+      if(x < r.left || x > r.right) return;
+      var d = y < r.top ? r.top - y : (y > r.bottom ? y - r.bottom : 0);
+      if(d <= 70 && d < cerca){ cerca = d; bloque = c; }
     });
     if(!bloque) return;
 
@@ -1727,7 +1741,7 @@ pintar();
     if(destino && destino.previousSibling === hueco) return;
 
     ultimoCambio = ahora;
-    conFlip(function(){ bloque.insertBefore(hueco, destino); });
+    conFlip(function(){ bloque.insertBefore(hueco, destino); anchoImpar(); });
   }
 
   //  DESPLAZAR SOLO AL LLEGAR A UN BORDE
@@ -1783,6 +1797,7 @@ pintar();
        "pointerEvents","transition"].forEach(function(k){ card.style[k] = ""; });
       card.classList.remove("enVuelo");
       limpiar();
+      anchoImpar();
       guardar();
     };
     card.addEventListener("transitionend", terminar);
@@ -1800,6 +1815,7 @@ pintar();
   conts.forEach(function(c){ c.addEventListener("pointerdown", alBajar); });
 
   aplicarGuardado();
+  anchoImpar();
 })();
 
 })();
