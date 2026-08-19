@@ -210,10 +210,6 @@ svg{display:block;width:100%;height:auto;overflow:visible}
     <div class="chips" id="chipsAno"></div>
   </div>
   <div class="fila">
-    <span class="etiq">Periodo</span>
-    <div class="chips" id="chipsPeriodo"></div>
-  </div>
-  <div class="fila">
     <span class="etiq">Tipo</span>
     <div class="chips" id="chipsCP"></div>
   </div>
@@ -229,6 +225,7 @@ svg{display:block;width:100%;height:auto;overflow:visible}
     <option value="v">vendidas</option>
     <option value="x">expiradas</option>
   </select></label>
+  <label class="soloOpciones" id="lblEtapa">Etapa <select id="fEtapa"></select></label>
   <button class="limpiar" id="limpiar" type="button">Limpiar filtros</button>
 </div>
 
@@ -307,7 +304,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v52 · 19 ago 2026";
+var VERSION = "v53 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -379,7 +376,7 @@ var instDe = function(o){ return o["in"] || "Opciones"; };
 //  Los tres cortes que mas se comparan van como botones y no como listas:
 //  se pueden encender varios a la vez, o apagar los que estorben. Cada fila
 //  guarda el conjunto de los ENCENDIDOS; con todos encendidos no filtra.
-var F = {cuenta:"IBKR", inst:null, periodo:null, cp:null, anos:null, plazo:"", est:"", tk:"", mes:"", cierre:""};
+var F = {cuenta:"IBKR", inst:null, cp:null, anos:null, etapa:"", plazo:"", est:"", tk:"", mes:"", cierre:""};
 if(CUENTAS.indexOf(F.cuenta) < 0) F.cuenta = CUENTAS[0] || "IBKR";
 
 //  Todo lo demas se cuenta y se filtra DENTRO de la cuenta elegida, para
@@ -412,7 +409,7 @@ function deCuenta(){
 function pasa(o){
   if(!enCuentaElegida(o)) return false;
   if(F.inst    && !F.inst[instDe(o)]) return false;
-  if(F.periodo && !F.periodo[grupo(o)]) return false;
+  if(F.etapa    && grupo(o) !== F.etapa) return false;
   if(F.plazo   && o.tp !== F.plazo) return false;
   //  Una accion no es call ni put: el filtro no le aplica en vez de
   //  desaparecerla, que es lo que pasaba antes de esta guarda.
@@ -543,7 +540,6 @@ var CP_ROTULO = function(v){ return v === "C" ? "Call" : "Put"; };
 
 reiniciar("inst",    VAL_INST);
 reiniciar("anos",    VAL_ANOS);
-reiniciar("periodo", VAL_PERIODO);
 reiniciar("cp",      VAL_CP);
 
 //  Excluyente, como el periodo. Combinable parecia mejor idea hasta que se
@@ -555,11 +551,10 @@ var pintaInst = botonera("chipsInst", "pistaInst", VAL_INST, instDe, "inst", nul
   function(){
     //  Las etapas y los Call/Put de un instrumento no existen en el otro.
     //  Arrastrarlos deja la pantalla vacia sin decir por que.
-    reiniciar("periodo", VAL_PERIODO);
-    reiniciar("cp", VAL_CP);
-    F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = "";
+        reiniciar("cp", VAL_CP);
+    F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = ""; F.etapa = "";
     reiniciar("anos", VAL_ANOS);
-    ["fPlazo","fEst","fTk","fMes","fCierre"].forEach(function(i){ g(i).value = ""; });
+    ["fPlazo","fEst","fTk","fMes","fCierre","fEtapa"].forEach(function(i){ g(i).value = ""; });
     llenarSelectores(); ajustarMeses();
     pintarBotoneras(); pintarEncabezado(); pintar();
   }, true);
@@ -569,7 +564,6 @@ var pintaAno = botonera("chipsAno", null, VAL_ANOS,
     //  Cambiar de anio recorta los meses disponibles.
     ajustarMeses(); pintarBotoneras(); pintar();
   });
-var pintaPeriodo = botonera("chipsPeriodo", "pistaPeriodo", VAL_PERIODO, grupo, "periodo", null, true);
 var pintaCP      = botonera("chipsCP",      "pistaCP",      VAL_CP,
                             function(o){ return o.cp; }, "cp", CP_ROTULO, true);
 
@@ -625,11 +619,10 @@ function pintaCuenta(){
       //  Ademas VAL_PERIODO y VAL_ANOS se calculan sobre deCuenta(), que ya
       //  mira el instrumento, asi que tienen que correr despues de este.
       reiniciar("inst", VAL_INST);
-      reiniciar("periodo", VAL_PERIODO);
-      reiniciar("cp", VAL_CP);
-      F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = "";
+            reiniciar("cp", VAL_CP);
+      F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = ""; F.etapa = "";
       reiniciar("anos", VAL_ANOS);
-      ["fPlazo","fEst","fTk","fMes","fCierre"].forEach(function(i){ g(i).value = ""; });
+      ["fPlazo","fEst","fTk","fMes","fCierre","fEtapa"].forEach(function(i){ g(i).value = ""; });
       llenarSelectores(); ajustarMeses();
       pintarBotoneras(); pintarEncabezado(); pintar();
     };
@@ -637,7 +630,7 @@ function pintaCuenta(){
   //  Sin nota al lado: el boton encendido ya dice de que cuenta se habla.
 }
 
-function pintarBotoneras(){ pintaCuenta(); pintaAno(); pintaInst(); pintaPeriodo(); pintaCP(); }
+function pintarBotoneras(){ pintaCuenta(); pintaAno(); pintaInst(); pintaCP(); }
 
 // ---------------------------------------------------------------- selectores
 function llenar(sel, valores, etiqueta, todos){
@@ -653,17 +646,21 @@ function llenar(sel, valores, etiqueta, todos){
 function llenarSelectores(){
   var B = deCuenta();
   llenar("fPlazo", uniq(B.map(function(o){return o.tp;})), null, "todos");
+  //  Las etapas del trading de opciones (Seminario 1 y 2, 0DTE, metodo
+  //  propio). Se llama Etapa y no Periodo porque "periodo" se lee como
+  //  plazo, que es otra cosa y ya tiene su propia columna.
+  llenar("fEtapa", VAL_PERIODO(), null, "todas");
   llenar("fEst",  uniq(B.map(function(o){return o.e||"(sin etiqueta)";})), null, "todas");
   llenar("fTk",   uniq(B.map(function(o){return o.t;})), null, "todos");
   llenar("fMes",  uniq(B.map(function(o){return o.f.slice(0,7);})), mesTxt, "todos");
 }
 llenarSelectores();
 
-var FILTROS = ["fPlazo","fEst","fTk","fMes","fCierre"];
+var FILTROS = ["fPlazo","fEst","fTk","fMes","fCierre","fEtapa"];
 FILTROS.forEach(function(id){
   g(id).onchange = function(){
     F.plazo = g("fPlazo").value; F.est = g("fEst").value; F.tk = g("fTk").value;
-    F.mes = g("fMes").value; F.cierre = g("fCierre").value;
+    F.mes = g("fMes").value; F.cierre = g("fCierre").value; F.etapa = g("fEtapa").value;
     //  El mes vive dentro de un ano: si se elige un ano, la lista de meses
     //  se recorta a los suyos, y un mes de otro ano se descarta en vez de
     //  dejar la vista vacia sin explicacion.
@@ -672,10 +669,9 @@ FILTROS.forEach(function(id){
   };
 });
 g("limpiar").onclick = function(){
-  F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = "";
+  F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = ""; F.etapa = "";
   reiniciar("anos", VAL_ANOS);
-  reiniciar("periodo", VAL_PERIODO);
-    reiniciar("cp",      VAL_CP);
+      reiniciar("cp",      VAL_CP);
   pintarBotoneras();
   FILTROS.forEach(function(i){ g(i).value = ""; });
   ajustarMeses();
