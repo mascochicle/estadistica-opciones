@@ -160,6 +160,10 @@ svg{display:block;width:100%;height:auto;overflow:visible}
       <span class="etiq">Cuenta</span>
       <div class="chips" id="chipsCuenta"></div>
     </div>
+    <div class="cuentabox" id="filaInst">
+      <span class="etiq">Instrumento</span>
+      <div class="chips" id="chipsInst"></div>
+    </div>
     <div class="cuentabox" id="filaAno">
       <span class="etiq">Año</span>
       <div class="chips" id="chipsAno"></div>
@@ -170,10 +174,6 @@ svg{display:block;width:100%;height:auto;overflow:visible}
 <div class="kpis" id="kpis"></div>
 
 <div class="botonera">
-  <div class="fila" id="filaInst">
-    <span class="etiq">Instrumento</span>
-    <div class="chips" id="chipsInst"></div>
-  </div>
   <div class="fila">
     <span class="etiq">Periodo</span>
     <div class="chips" id="chipsPeriodo"></div>
@@ -269,7 +269,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v30 · 19 ago 2026";
+var VERSION = "v31 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -420,8 +420,10 @@ function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCa
                           : n + " de " + valores.length;
       elPista.style.color = n === 0 ? "var(--pierde)" : "";
     }
-    //  una botonera sin valores no dice nada: se esconde su fila entera
-    var fila = g(destino).closest ? g(destino).closest(".fila") : null;
+    //  una botonera sin valores no dice nada: se esconde su fila entera.
+    //  Se buscan las dos clases porque unas botoneras viven en la botonera
+    //  de abajo (.fila) y otras en el encabezado (.cuentabox).
+    var fila = g(destino).closest ? g(destino).closest(".fila, .cuentabox") : null;
     if(fila) fila.style.display = valores.length ? "" : "none";
   }
   return repintar;
