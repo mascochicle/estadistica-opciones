@@ -254,7 +254,7 @@ const D={"c":[{"f":"2026-06-09","h":"12:49","t":"SOFI","cp":"C","k":20,"v":"2026
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v22 · 19 ago 2026";
+var VERSION = "v23 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -536,6 +536,16 @@ function kpis(){
   g("kpis").innerHTML =
     tar("Resultado", usd(pnl), n+" operaciones cerradas", pnl>=0?"pos":"neg") +
     tar("Aciertos", n?pct(gan.length/n*100):"—", gan.length+" de "+n, "") +
+    (function(){
+      //  Va junto a Aciertos a proposito: los dos numeros solo significan
+      //  algo juntos. 50% de acierto con razon 0.74 pierde; con 1.59 gana.
+      var r = razonDe(v);
+      if(r.razon === null) return tar("Razón G/P", "—", "sin operaciones perdedoras", "mut");
+      return tar("Razón G/P", r.razon.toFixed(2),
+        "gana " + usd(r.gana) + " · pierde " + usd(-r.pierde)
+        + " · necesita " + (r.req===null ? "—" : r.req.toFixed(2)),
+        r.ok ? "pos" : "neg");
+    })() +
     tar("Expiraron sin valor", n?pct(exp.length/n*100):"—",
         exp.length+" · "+usd(pexp), exp.length?"neg":"") +
     tar("Comisiones", usd(com), "pagadas en estas operaciones", "mut");
@@ -675,24 +685,65 @@ function grafTk(){
 var ORD = {est:{k:"pnl",d:-1}, tipo:{k:"pnl",d:-1}, tk:{k:"pnl",d:-1},
            cierre:{k:"pnl",d:-1}, cp:{k:"pnl",d:-1}, ops:{k:"f",d:-1}};
 
+// =====================================================================
+//  LA RAZON — ganancia promedio / perdida promedio
+//
+//  Es el numero que decide si una etapa gana o pierde, y el unico que se
+//  puede corregir con la operacion todavia abierta. El acierto de Marco
+//  practicamente no se mueve (45-50% en ocho anos, dos instrumentos); lo
+//  que cambia de una etapa a otra es esta razon, y va de 0.53 a 1.71.
+//
+//  El umbral no es 1: depende del acierto. Con un acierto p hace falta
+//      razon > (1 - p) / p
+//  Con 50% de acierto el umbral es 1.00; con 40%, 1.50. Por eso se
+//  muestran los dos numeros juntos — la razon sola no dice nada.
+// =====================================================================
+function razonDe(arr){
+  var w = [], l = [];
+  arr.forEach(function(o){ (o.g > 0 ? w : l).push(o.g); });
+  var suma = function(a){ return a.reduce(function(x,y){ return x+y; }, 0); };
+  var gana   = w.length ? suma(w)/w.length : 0;
+  var pierde = l.length ? Math.abs(suma(l)/l.length) : 0;
+  var p = arr.length ? w.length/arr.length : 0;
+  return {
+    gana: gana, pierde: pierde,
+    razon: pierde ? gana/pierde : null,          // sin perdidas no hay razon
+    req:   p ? (1-p)/p : null,
+    ok:    (pierde && p) ? (gana/pierde) > ((1-p)/p) : null
+  };
+}
+
+//  Texto corto para las tablas: "1.59" con el umbral al lado.
+function razonTxt(r){
+  if(r.razon === null) return '<span class="mut">—</span>';
+  var cls = r.ok ? "pos" : "neg";
+  return '<span class="'+cls+'" style="font-weight:640">'+r.razon.toFixed(2)+'</span>'
+       + '<span class="mut" style="font-size:11px"> / '+(r.req===null?"—":r.req.toFixed(2))+'</span>';
+}
+
 function agrupar(clave){
   var m = new Map();
   vis().forEach(function(o){
     var k = clave(o);
-    if(!m.has(k)) m.set(k,{k:k,n:0,w:0,pnl:0,exp:0});
+    if(!m.has(k)) m.set(k,{k:k,n:0,w:0,pnl:0,exp:0,ops:[]});
     var e = m.get(k);
-    e.n++; e.pnl += o.g;
+    e.n++; e.pnl += o.g; e.ops.push(o);
     if(o.g>0) e.w++;
     if(o.x) e.exp++;
   });
   return Array.from(m.values()).map(function(e){
     e.acierto = e.n ? e.w/e.n*100 : 0;
     e.tasaExp = e.n ? e.exp/e.n*100 : 0;
+    var r = razonDe(e.ops);
+    e.r = r;
+    //  para poder ordenar por la columna hace falta un numero plano
+    e.razon = r.razon === null ? -1 : r.razon;
     return e;
   });
 }
 
 var COLS = [{k:"k",t:"",izq:1},{k:"n",t:"Ops"},{k:"acierto",t:"Acierto"},
+            {k:"razon",t:"Razón"},
             {k:"tasaExp",t:"Expiran"},{k:"pnl",t:"Resultado"}];
 
 function tabla(pre, titulo, filas, orden){
@@ -716,9 +767,10 @@ function tabla(pre, titulo, filas, orden){
   g("b"+pre).innerHTML = filas.length ? filas.map(function(e){
     return '<tr><td class="izq">'+e.k+'</td><td>'+e.n+'</td>'
       + '<td><span class="barra"><span style="width:'+e.acierto.toFixed(0)+'%"></span></span> '+pct(e.acierto)+'</td>'
+      + '<td title="ganancia promedio / pérdida promedio · a la derecha, lo que necesitaba con ese acierto">'+razonTxt(e.r)+'</td>'
       + '<td class="'+(e.tasaExp>40?"neg":"")+'">'+pct(e.tasaExp)+'</td>'
       + '<td class="'+(e.pnl>=0?"pos":"neg")+'">'+usd(e.pnl)+'</td></tr>';
-  }).join("") : '<tr><td colspan="5" class="vacio">Nada con estos filtros.</td></tr>';
+  }).join("") : '<tr><td colspan="6" class="vacio">Nada con estos filtros.</td></tr>';
 }
 
 // ---------------------------------------------------------------- vendidas vs expiradas
