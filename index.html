@@ -107,15 +107,20 @@ header .sub{color:var(--tinta2);font-size:13.5px;margin:5px 0 0}
 .kpi .s{font-size:11.5px;color:var(--tinta3);display:block;margin-top:1px}
 .pos{color:var(--gana)} .neg{color:var(--pierde)} .mut{color:var(--tinta2)}
 
-.filtros{display:flex;gap:9px;flex-wrap:wrap;align-items:center;background:var(--panel);
+/*  Los selectores envuelven dentro de su propio grupo y el boton se queda
+    fijo a la derecha. Antes el boton compartia el flex con ellos y, al no
+    caber, se caia solo a un segundo renglon con todo el ancho vacio.  */
+.filtros{display:flex;gap:12px;align-items:center;background:var(--panel);
   border:1px solid var(--linea);border-radius:12px;padding:11px 13px}
+.filtros .grupo{display:flex;gap:9px;flex-wrap:wrap;align-items:center;flex:1;min-width:0}
 .filtros label{font-size:11px;color:var(--tinta3);text-transform:uppercase;letter-spacing:.05em;
   font-weight:640;display:flex;align-items:center;gap:6px}
 select{background:var(--hundido);border:1px solid var(--linea2);color:var(--tinta);
   border-radius:8px;padding:5px 8px;font:inherit;font-size:12.5px;max-width:190px}
 select:focus{outline:2px solid var(--acento);outline-offset:1px}
 button.limpiar{background:transparent;border:1px solid var(--linea2);color:var(--tinta2);
-  border-radius:8px;padding:5px 12px;font:inherit;font-size:12.5px;cursor:pointer;margin-left:auto}
+  border-radius:8px;padding:5px 12px;font:inherit;font-size:12.5px;cursor:pointer;
+  white-space:nowrap;flex:none}
 button.limpiar:hover{border-color:var(--tinta3);color:var(--tinta)}
 
 .botonera{background:var(--panel);border:1px solid var(--linea);border-radius:12px;
@@ -216,6 +221,7 @@ svg{display:block;width:100%;height:auto;overflow:visible}
 </div>
 
 <div class="filtros">
+  <div class="grupo">
   <label class="soloOpciones" id="lblEst">Estrategia <select id="fEst"></select></label>
   <label class="soloOpciones" id="lblTipo">Tipo <select id="fTipo"></select></label>
   <label>Mes <select id="fMes"></select></label>
@@ -226,6 +232,7 @@ svg{display:block;width:100%;height:auto;overflow:visible}
     <option value="x">expiradas</option>
   </select></label>
   <label class="soloOpciones" id="lblEtapa">Etapa <select id="fEtapa"></select></label>
+  </div>
   <button class="limpiar" id="limpiar" type="button">Limpiar filtros</button>
 </div>
 
@@ -304,7 +311,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v56 · 19 ago 2026";
+var VERSION = "v57 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
