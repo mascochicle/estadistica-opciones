@@ -85,7 +85,11 @@ li .es{font-size:12.5px;color:var(--acento);font-weight:560}
 li .nt{font-size:12.5px;color:var(--tinta2);margin-top:2px;word-break:break-word}
 li .miniatura{margin-top:7px;width:100%;max-width:230px;border-radius:8px;border:1px solid var(--linea2);
   display:block;cursor:zoom-in}
+li .acciones{display:flex;flex-direction:column;gap:4px;align-items:flex-end}
 li .borrar{background:transparent;border:0;color:var(--tinta3);font-size:19px;line-height:1;padding:4px 7px;border-radius:7px}
+li .sacar{background:transparent;border:1px solid var(--linea2);color:var(--tinta2);border-radius:8px;
+  padding:5px 9px;font-size:11.5px;min-height:32px;white-space:nowrap}
+li .sacar:hover{border-color:var(--acento);color:var(--acento)}
 .sinnada{color:var(--tinta3);font-size:12.5px;text-align:center;padding:20px 8px;
   border:1px dashed var(--linea2);border-radius:11px}
 
@@ -168,18 +172,22 @@ textarea{width:100%;height:180px;background:var(--fondo);color:var(--tinta2);bor
 
 <p class="pie">Todo se guarda en este teléfono y funciona sin señal. Las anotaciones se
 <b>acumulan</b>: no hay que mandar nada de una en una. Cuando quieras pasármelas, dale a
-<b>Copiar todas</b> y pégamelas en el chat &mdash; una sola vez, con todas. Los gráficos se
-quedan aquí para tu memoria; si quieres que yo vea alguno, mándamelo suelto.</p>
+<b>Copiar todas</b> y pégamelas en el chat &mdash; una sola vez, con todas.
+<br><b>Los gráficos viven dentro de esta app</b>, no en tu galería: si la desinstalas o borras
+los datos del sitio, se van con ella. Con <b>Sacar</b> los mandas a donde quieras &mdash;
+WhatsApp, Drive, tu galería&mdash; y de paso te quedan respaldados.</p>
 </div>
 
 <dialog id="dlg"><div class="dlg">
   <h3>Copia esto y pégamelo</h3>
-  <p>Son <span id="dlgN"></span> anotaciones, todas de un jalón. Después puedes borrarlas o dejarlas.</p>
+  <p>Son <span id="dlgN"></span> anotaciones, todas de un jalón. Los gráficos van aparte:
+  el botón de abajo los saca de la app para que los puedas mandar.</p>
   <textarea id="dlgTxt" readonly></textarea>
   <div class="fila">
     <button class="pri" id="dlgCopiar">Copiar</button>
     <button id="dlgCerrar">Cerrar</button>
   </div>
+  <div class="fila"><button id="dlgFotos">Sacar los gráficos</button></div>
   <div class="fila"><button id="dlgBorrar" style="color:var(--alerta)">Borrar todas</button></div>
 </div></dialog>
 
@@ -387,7 +395,10 @@ function pintar(){
       + '<span class="qq"><span class="tk">'+esc(r.tk)+'</span> <span class="es">'+esc(r.est)+'</span>'
       + (r.nota ? '<span class="nt">'+esc(r.nota)+'</span>' : '')
       + (src ? '<img class="miniatura" src="'+src+'" alt="Gráfico" data-ver="'+src+'">' : '')
-      + '</span><button class="borrar" type="button" data-ts="'+r.ts+'" title="Borrar">×</button></li>';
+      + '</span><span class="acciones">'
+      + '<button class="borrar" type="button" data-ts="'+r.ts+'" title="Borrar">×</button>'
+      + (r.img ? '<button class="sacar" type="button" data-sacar="'+r.ts+'">Sacar</button>' : '')
+      + '</span></li>';
   }).join("");
   Array.prototype.forEach.call(g("lista").querySelectorAll(".borrar"), function(b){
     b.onclick = async function(){
@@ -398,6 +409,12 @@ function pintar(){
   });
   Array.prototype.forEach.call(g("lista").querySelectorAll(".miniatura"), function(im){
     im.onclick = function(){ g("lupaImg").src = im.dataset.ver; g("lupa").showModal(); };
+  });
+  Array.prototype.forEach.call(g("lista").querySelectorAll(".sacar"), function(b){
+    b.onclick = function(){
+      var r = datos.filter(function(z){ return z.ts === +b.dataset.sacar; })[0];
+      if(r) sacar([r]);
+    };
   });
   g("sinnada").style.display = datos.length ? "none" : "";
   var peso = datos.reduce(function(a,r){ return a + (r.img ? r.img.size : 0); }, 0);
@@ -425,6 +442,48 @@ g("guardar").onclick = async function(){
   resumen(); pintar();
 };
 
+// =====================================================================
+//  SACAR LOS GRAFICOS
+//  Viven dentro del almacen de la app, no en la galeria: si se desinstala
+//  o se borran los datos del sitio, se van. Este boton los saca — en el
+//  telefono abre la hoja de compartir (WhatsApp, Drive, lo que sea) y en
+//  la computadora los descarga.
+// =====================================================================
+function limpio(t){
+  return String(t).normalize("NFD").replace(/[̀-ͯ]/g, "")
+                  .replace(/[^A-Za-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+function archivoDe(r){
+  var d = new Date(r.ts), p = function(n){ return (n<10?"0":"")+n; };
+  var nombre = limpio(r.tk) + "_" + d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())
+             + "_" + p(d.getHours())+p(d.getMinutes()) + "_" + limpio(r.est) + ".jpg";
+  return new File([r.img], nombre, {type: r.img.type || "image/jpeg"});
+}
+async function sacar(filas){
+  var conFoto = filas.filter(function(r){ return r.img; });
+  if(!conFoto.length){ avisar("Esas anotaciones no traen gráfico.", false); return; }
+  var archivos = conFoto.map(archivoDe);
+  //  En el telefono, la hoja de compartir del sistema.
+  if(navigator.canShare && navigator.canShare({files: archivos})){
+    try{
+      await navigator.share({files: archivos, title: "Gráficos"});
+      return;
+    }catch(e){
+      if(e && e.name === "AbortError") return;      // lo cancelo el usuario
+    }
+  }
+  //  Si no hay hoja de compartir, se descargan.
+  archivos.forEach(function(f, i){
+    setTimeout(function(){
+      var a = document.createElement("a");
+      a.href = URL.createObjectURL(f); a.download = f.name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function(){ URL.revokeObjectURL(a.href); }, 4000);
+    }, i * 350);
+  });
+  avisar("Descargando " + archivos.length + (archivos.length===1?" gráfico.":" gráficos."), true);
+}
+
 // ------------------------------------------------------------- exportar
 function iso(ts){
   var d = new Date(ts), p = function(n){ return (n<10?"0":"")+n; };
@@ -447,6 +506,12 @@ g("dlgCopiar").onclick = async function(){
   try{ await navigator.clipboard.writeText(t.value); b.textContent = "Copiado ✓"; }
   catch(e){ document.execCommand("copy"); b.textContent = "Seleccionado — copia con el teclado"; }
   setTimeout(function(){ b.textContent = "Copiar"; }, 2400);
+};
+g("dlgFotos").onclick = function(){
+  var con = datos.filter(function(r){ return r.img; });
+  if(!con.length){ avisar("Todavía no hay gráficos guardados.", false); return; }
+  g("dlg").close();
+  sacar(con.sort(function(a,b){ return a.ts - b.ts; }));
 };
 g("dlgCerrar").onclick = function(){ g("dlg").close(); };
 g("dlgBorrar").onclick = async function(){
