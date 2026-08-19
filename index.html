@@ -306,7 +306,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v50 · 19 ago 2026";
+var VERSION = "v51 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -359,7 +359,7 @@ var cuentaDe = function(o){ return o.cu || "IBKR"; };
 //  Van declaradas AQUI y no mas abajo porque enCuentaElegida() las usa, y
 //  esa se llama desde VAL_ANOS() al arrancar. Estando abajo funcionaba de
 //  casualidad: valian undefined y la comparacion caia en la rama correcta.
-var SIMULADA = "IBKR simulada";
+var SIMULADA = "SIM IBKR";
 var TODAS = "*";
 function cuentasReales(){
   return CUENTAS.filter(function(c){ return c !== SIMULADA; });
@@ -370,7 +370,9 @@ function cuentasReales(){
 //  A diferencia de la cuenta, aqui SI tiene sentido verlos juntos: los dos
 //  son dinero real de la misma cuenta, y sumarlos da el resultado de operar,
 //  que es un numero que existe. Por eso es combinable y no excluyente.
-var INSTRUMENTOS = ["Opciones", "Acciones", "Cripto"];
+//  Acciones primero: es donde Marco tiene su historia mas larga y su
+//  resultado positivo.
+var INSTRUMENTOS = ["Acciones", "Opciones", "Cripto"];
 var instDe = function(o){ return o["in"] || "Opciones"; };
 
 //  Los tres cortes que mas se comparan van como botones y no como listas:
@@ -574,7 +576,8 @@ var pintaCP      = botonera("chipsCP",      "pistaCP",      VAL_CP,
 //  Antes la fila se escondia hasta que hubiera algo simulado, y el efecto
 //  fue el contrario del buscado: parecia que la funcion no existia. Un
 //  boton en cero y apagado dice "aqui va a aparecer"; no mostrar nada, no.
-var ORDEN_CUENTAS = ["IBKR", "IBKR simulada", "Binance"];
+//  El orden lo pidio Marco asi: primero las reales, la de practica al final.
+var ORDEN_CUENTAS = ["IBKR", "Binance", "SIM IBKR"];
 function cuentasVisibles(){
   var extra = CUENTAS.filter(function(c){ return ORDEN_CUENTAS.indexOf(c) < 0; });
   return ORDEN_CUENTAS.concat(extra);
