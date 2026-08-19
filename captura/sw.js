@@ -1,4 +1,4 @@
-const CACHE = "captura-v6";
+const CACHE = "captura-v19";
 const ARCHIVOS = ["./", "./index.html", "./manifest.webmanifest", "./icon-192.png", "./icon-512.png"];
 
 self.addEventListener("install", e => {
@@ -15,6 +15,8 @@ self.addEventListener("activate", e => {
 
 //  Primero la red, y si no hay senal lo que este guardado. Asi una version
 //  nueva llega sola en cuanto haya internet, sin dejar de funcionar sin el.
+self.addEventListener("message", e => { if(e.data === "saltar") self.skipWaiting(); });
+
 self.addEventListener("fetch", e => {
   if(e.request.method !== "GET") return;
   e.respondWith(

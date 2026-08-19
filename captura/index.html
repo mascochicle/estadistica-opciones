@@ -29,6 +29,15 @@ body{margin:0;background:var(--fondo);color:var(--tinta);
 
 h1{font-size:21px;font-weight:660;letter-spacing:-.02em;margin:0}
 .eyebrow{font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--tinta3);font-weight:680;margin:0 0 4px}
+.ver{display:inline-block;margin-left:7px;padding:1px 7px;border-radius:4px;background:var(--hundido);
+  border:1px solid var(--linea);color:var(--tinta3);letter-spacing:.04em;font-weight:640;
+  font-family:ui-monospace,Menlo,Consolas,monospace;font-size:9.5px;text-transform:none}
+.nueva{display:none;background:var(--acento-bg);border:1px solid var(--acento);border-radius:11px;
+  padding:11px 13px;align-items:center;gap:11px;flex-wrap:wrap}
+.nueva.on{display:flex}
+.nueva span{font-size:13px;color:var(--acento);flex:1;min-width:150px}
+.nueva button{background:var(--acento);border:0;color:var(--fondo);border-radius:9px;
+  padding:9px 15px;font-size:13.5px;font-weight:640;min-height:42px}
 .sub{color:var(--tinta2);font-size:12.5px;margin:4px 0 0}
 
 .paso{background:var(--panel);border:1px solid var(--linea);border-radius:13px;padding:12px 13px}
@@ -115,11 +124,16 @@ textarea{width:100%;height:180px;background:var(--fondo);color:var(--tinta2);bor
 <body>
 <div class="wrap">
 <header>
-  <p class="eyebrow">Bitácora de opciones</p>
+  <p class="eyebrow">Bitácora de opciones <span class="ver" id="ver"></span></p>
   <h1>Captura al Entrar</h1>
   <p class="sub">Anota <b>por qué</b> entraste, en el momento. Strike, vencimiento, cantidad y
   precio ya vienen del extracto del bróker.</p>
 </header>
+
+<div class="nueva" id="nueva">
+  <span>Hay una versión nueva de la app.</span>
+  <button type="button" id="btnNueva">Actualizar</button>
+</div>
 
 <div class="paso">
   <h2><span class="num">1</span> Qué operaste</h2>
@@ -207,6 +221,7 @@ var ESTRATEGIAS = ["0DTE","Gap a la alza","Gap a la alza IMP","Gap B a la alza",
   "Hanger diario","Hanger Semanal","Modelo de los 4 pasos","3 semanas","Verde Rojo semanal",
   "Estrategia earnings","Fed speech","Estrategia Inflacion","Método propio","Sin estrategia clara"];
 var LLAVE_VIEJA = "capturas_v1";
+var VERSION = "v19 · 18 ago 2026";     // se sella al publicar
 var MAX_LADO = 1100, CALIDAD = 0.62;
 
 var g = function(id){ return document.getElementById(id); };
@@ -533,7 +548,40 @@ g("dlgBorrar").onclick = async function(){
   pintar(); resumen();
 })();
 
-if("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(function(){});
+g("ver").textContent = VERSION;
+
+// =====================================================================
+//  AVISO DE VERSION NUEVA
+//  El service worker guarda la app para que funcione sin senal, y por eso
+//  una version nueva no entra sola. Aqui se busca al abrir, y si aparece
+//  se avisa en vez de dejar a Marco usando una version vieja sin saberlo.
+// =====================================================================
+if("serviceWorker" in navigator){
+  navigator.serviceWorker.register("sw.js").then(function(reg){
+    function vigilar(sw){
+      if(!sw) return;
+      sw.addEventListener("statechange", function(){
+        //  Solo avisa si YA habia una version corriendo; en la primera
+        //  instalacion no hay nada viejo que reemplazar.
+        if(sw.state === "installed" && navigator.serviceWorker.controller){
+          g("nueva").className = "nueva on";
+        }
+      });
+    }
+    if(reg.waiting && navigator.serviceWorker.controller) g("nueva").className = "nueva on";
+    vigilar(reg.installing);
+    reg.addEventListener("updatefound", function(){ vigilar(reg.installing); });
+    reg.update().catch(function(){});
+    setInterval(function(){ reg.update().catch(function(){}); }, 60*60*1000);
+  }).catch(function(){});
+}
+g("btnNueva").onclick = function(){
+  this.textContent = "Actualizando…";
+  navigator.serviceWorker.getRegistration().then(function(reg){
+    if(reg && reg.waiting) reg.waiting.postMessage("saltar");
+    setTimeout(function(){ location.reload(); }, 400);
+  });
+};
 })();
 </script>
 </body>
