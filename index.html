@@ -215,11 +215,11 @@ svg{display:block;width:100%;height:auto;overflow:visible}
 </div>
 
 <div class="filtros">
-  <label>Estrategia <select id="fEst"></select></label>
+  <label class="soloOpciones" id="lblEst">Estrategia <select id="fEst"></select></label>
   <label>Subyacente <select id="fTk"></select></label>
   <label>Mes <select id="fMes"></select></label>
   <label>Plazo <select id="fPlazo"></select></label>
-  <label>Cierre <select id="fCierre">
+  <label class="soloOpciones" id="lblCierre">Cierre <select id="fCierre">
     <option value="">todos</option>
     <option value="v">vendidas</option>
     <option value="x">expiradas</option>
@@ -240,22 +240,22 @@ svg{display:block;width:100%;height:auto;overflow:visible}
     <div id="grafMes"></div>
   </div>
   <div class="tarjeta">
-    <h2>Resultado por subyacente</h2>
-    <p class="nota">Los doce que más pesan, ganando o perdiendo. A la derecha de la línea
+    <h2 id="tGrafTk">Resultado por subyacente</h2>
+    <p class="nota" id="nGrafTk">Los doce que más pesan, ganando o perdiendo. A la derecha de la línea
     ganó, a la izquierda perdió. Clic para filtrar ese subyacente.</p>
     <div id="grafTk"></div>
   </div>
 </div>
 
 <div class="par">
-  <div class="tarjeta">
+  <div class="tarjeta soloOpciones" id="cardEst">
     <h2>Por estrategia</h2>
     <p class="nota">Clic en el encabezado para ordenar.</p>
     <div class="scroll"><table><thead><tr id="hEst"></tr></thead><tbody id="bEst"></tbody></table></div>
   </div>
   <div class="tarjeta">
-    <h2>Por plazo comprado</h2>
-    <p class="nota">El plazo se mide al abrir la posición: son los días que compraste,
+    <h2 id="tPlazo">Por plazo comprado</h2>
+    <p class="nota" id="nPlazo">El plazo se mide al abrir la posición: son los días que compraste,
     no los que le quedaban al cerrar.</p>
     <div class="scroll"><table><thead><tr id="hTipo"></tr></thead><tbody id="bTipo"></tbody></table></div>
   </div>
@@ -263,14 +263,16 @@ svg{display:block;width:100%;height:auto;overflow:visible}
 
 <div class="par">
   <div class="tarjeta">
-    <h2>Por subyacente</h2>
+    <h2 id="tTablaTk">Por subyacente</h2>
     <p class="nota">Solo los que tienen 3 operaciones o más.</p>
     <div class="scroll" style="max-height:300px"><table><thead><tr id="hTk"></tr></thead><tbody id="bTk"></tbody></table></div>
-    <h2 style="margin-top:18px">Calls contra puts</h2>
-    <p class="nota">Apostar a que sube contra apostar a que baja.</p>
-    <table><thead><tr id="hCP"></tr></thead><tbody id="bCP"></tbody></table>
+    <div class="soloOpciones" id="cardCP">
+      <h2 style="margin-top:18px">Calls contra puts</h2>
+      <p class="nota">Apostar a que sube contra apostar a que baja.</p>
+      <table><thead><tr id="hCP"></tr></thead><tbody id="bCP"></tbody></table>
+    </div>
   </div>
-  <div class="tarjeta">
+  <div class="tarjeta soloOpciones" id="cardGrupo">
     <h2>Por grupo, y vendidas contra expiradas</h2>
     <p class="nota">El curso tuvo dos partes &mdash; abril y agosto de 2025 &mdash; y separarlas
     importa, porque los resultados no se parecen. Abajo, cuánto pesa dejar expirar: una opción
@@ -304,7 +306,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v45 · 19 ago 2026";
+var VERSION = "v46 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -350,6 +352,19 @@ function grupo(o){
 var CUENTAS = uniq(C.map(function(o){ return o.cu || "IBKR"; }));
 var cuentaDe = function(o){ return o.cu || "IBKR"; };
 
+//  TODAS = las cuentas de dinero real juntas. La simulada NUNCA entra ahi:
+//  mezclar dinero de practica con dinero real da un total que no significa
+//  nada. Se puede ver sola picandole a su boton, que es lo unico razonable.
+//
+//  Van declaradas AQUI y no mas abajo porque enCuentaElegida() las usa, y
+//  esa se llama desde VAL_ANOS() al arrancar. Estando abajo funcionaba de
+//  casualidad: valian undefined y la comparacion caia en la rama correcta.
+var SIMULADA = "IBKR simulada";
+var TODAS = "*";
+function cuentasReales(){
+  return CUENTAS.filter(function(c){ return c !== SIMULADA; });
+}
+
 //  INSTRUMENTO — opciones y acciones, en el mismo tablero pero separables.
 //
 //  A diferencia de la cuenta, aqui SI tiene sentido verlos juntos: los dos
@@ -366,14 +381,33 @@ if(CUENTAS.indexOf(F.cuenta) < 0) F.cuenta = CUENTAS[0] || "IBKR";
 
 //  Todo lo demas se cuenta y se filtra DENTRO de la cuenta elegida, para
 //  que los numeritos de los botones no incluyan operaciones que no estas viendo.
+//  ADAPTAR EL PANEL AL INSTRUMENTO
+//
+//  Este tablero nacio para opciones y arrastraba conceptos que en acciones y
+//  cripto no existen: el "subyacente" (ahi el activo ES lo que se opera),
+//  calls contra puts, y todo lo de expirar sin valor. Mostrarlos con acciones
+//  no es solo ruido: es afirmar cosas falsas.
+//
+//  En vez de dos tableros separados, el mismo se adapta segun lo que se este
+//  mirando. Un solo lugar, una sola bitacora, y cada instrumento con los
+//  rubros que le tocan.
+function hayOpciones(){
+  return deCuenta().some(function(o){ return instDe(o) === "Opciones"; });
+}
+
+function enCuentaElegida(o){
+  var c = cuentaDe(o);
+  return F.cuenta === TODAS ? c !== SIMULADA : c === F.cuenta;
+}
+
 function deCuenta(){
   return C.filter(function(o){
-    return cuentaDe(o) === F.cuenta && (!F.inst || F.inst[instDe(o)]);
+    return enCuentaElegida(o) && (!F.inst || F.inst[instDe(o)]);
   });
 }
 
 function pasa(o){
-  if(cuentaDe(o) !== F.cuenta) return false;
+  if(!enCuentaElegida(o)) return false;
   if(F.inst    && !F.inst[instDe(o)]) return false;
   if(F.periodo && !F.periodo[grupo(o)]) return false;
   if(F.plazo   && o.tp !== F.plazo) return false;
@@ -546,7 +580,15 @@ function pintaCuenta(){
   fila.style.display = "";
   var cont = new Map();
   C.forEach(function(o){ var k = cuentaDe(o); cont.set(k, (cont.get(k)||0)+1); });
-  g("chipsCuenta").innerHTML = cuentasVisibles().map(function(v){
+  var reales = cuentasReales();
+  var nReales = C.filter(function(o){ return cuentaDe(o) !== SIMULADA; }).length;
+  var htmlTodas = reales.length < 2 ? "" :
+      '<button class="chip uno todos" type="button" aria-pressed="' + (F.cuenta === TODAS) + '"'
+    + ' data-v="' + TODAS + '" title="Suma las cuentas de dinero real. La simulada no se mezcla nunca.">'
+    + '<span class="marca">' + (F.cuenta === TODAS ? "✓" : "") + '</span>todas'
+    + ' <span style="opacity:.65">' + nReales + '</span></button>';
+
+  g("chipsCuenta").innerHTML = htmlTodas + cuentasVisibles().map(function(v){
     var n = cont.get(v) || 0;
     var on = F.cuenta === v;
     //  Sin operaciones no hay nada que ver: se deja apagado en vez de
@@ -687,8 +729,12 @@ function kpis(){
         + " · necesita " + (r.req===null ? "—" : r.req.toFixed(2)),
         r.ok ? "pos" : "neg");
     })() +
-    tar("Expiraron sin valor", n?pct(exp.length/n*100):"—",
-        exp.length+" · "+usd(pexp), exp.length?"neg":"") +
+    //  "expirar sin valor" no existe en acciones ni cripto: la tarjeta se
+    //  omite en vez de mostrar un 0% que parece un dato.
+    (hayOpciones()
+      ? tar("Expiraron sin valor", n?pct(exp.length/n*100):"—",
+            exp.length+" · "+usd(pexp), exp.length?"neg":"")
+      : "") +
     tar("Comisiones", usd(com), "pagadas en estas operaciones", "mut");
 }
 function tar(k,v,s,cls){
@@ -900,11 +946,17 @@ function agrupar(clave){
   });
 }
 
-var COLS = [{k:"k",t:"",izq:1},{k:"n",t:"Ops"},{k:"acierto",t:"Acierto"},
-            {k:"razon",t:"Razón"},
-            {k:"tasaExp",t:"Expiran"},{k:"pnl",t:"Resultado"}];
+var COLS_BASE = [{k:"k",t:"",izq:1},{k:"n",t:"Ops"},{k:"acierto",t:"Acierto"},
+                 {k:"razon",t:"Razón"},
+                 {k:"tasaExp",t:"Expiran",soloOp:1},{k:"pnl",t:"Resultado"}];
+//  La columna "Expiran" se cae con acciones y cripto: siempre seria 0%.
+function COLS_VIS(){
+  var op = hayOpciones();
+  return COLS_BASE.filter(function(c){ return op || !c.soloOp; });
+}
 
 function tabla(pre, titulo, filas, orden){
+  var COLS = COLS_VIS();
   var cols = COLS.map(function(c,i){ return i===0 ? {k:c.k,t:titulo,izq:1} : c; });
   g("h"+pre).innerHTML = cols.map(function(c){
     return '<th data-k="'+c.k+'" class="'+(c.izq?"izq ":"")+(orden.k===c.k?"activa":"")+'">'+c.t+
@@ -926,9 +978,9 @@ function tabla(pre, titulo, filas, orden){
     return '<tr><td class="izq">'+e.k+'</td><td>'+e.n+'</td>'
       + '<td><span class="barra"><span style="width:'+e.acierto.toFixed(0)+'%"></span></span> '+pct(e.acierto)+'</td>'
       + '<td title="ganancia promedio / pérdida promedio · a la derecha, lo que necesitaba con ese acierto">'+razonTxt(e.r)+'</td>'
-      + '<td class="'+(e.tasaExp>40?"neg":"")+'">'+pct(e.tasaExp)+'</td>'
+      + (hayOpciones() ? '<td class="'+(e.tasaExp>40?"neg":"")+'">'+pct(e.tasaExp)+'</td>' : '')
       + '<td class="'+(e.pnl>=0?"pos":"neg")+'">'+usd(e.pnl)+'</td></tr>';
-  }).join("") : '<tr><td colspan="6" class="vacio">Nada con estos filtros.</td></tr>';
+  }).join("") : '<tr><td colspan="'+COLS.length+'" class="vacio">Nada con estos filtros.</td></tr>';
 }
 
 // ---------------------------------------------------------------- vendidas vs expiradas
@@ -1004,16 +1056,48 @@ function tablaOps(){
 }
 
 // ---------------------------------------------------------------- pintar todo
+//  ADAPTAR EL PANEL AL INSTRUMENTO
+//
+//  Este tablero nacio para opciones y arrastraba rubros que en acciones y
+//  cripto no existen: el "subyacente" (ahi el activo ES lo que se opera),
+//  calls contra puts, y todo lo de expirar sin valor. Mostrarlos con
+//  acciones no es solo ruido, es afirmar cosas que no son.
+//
+//  En vez de dos tableros separados, el mismo se adapta a lo que se este
+//  mirando: una sola bitacora y cada instrumento con lo que le toca.
+function adaptarPanel(){
+  var op = hayOpciones();
+  Array.prototype.forEach.call(document.querySelectorAll(".soloOpciones"), function(el){
+    el.style.display = op ? "" : "none";
+  });
+  var poner = function(id, txt){ var e = g(id); if(e) e.textContent = txt; };
+  //  En opciones el subyacente es otra cosa que lo que se compra; en
+  //  acciones y cripto el activo es el mismo que se opera.
+  poner("tGrafTk",  op ? "Resultado por subyacente" : "Resultado por activo");
+  poner("tTablaTk", op ? "Por subyacente" : "Por activo");
+  poner("nGrafTk",  "Los doce que más pesan, ganando o perdiendo. A la derecha de la línea "
+        + "ganó, a la izquierda perdió. Clic para filtrar ese " + (op ? "subyacente." : "activo."));
+  poner("tPlazo",   op ? "Por plazo comprado" : "Por cuánto lo tuviste");
+  poner("nPlazo",   op
+        ? "El plazo se mide al abrir la posición: son los días que compraste, no los que le quedaban al cerrar."
+        : "Días entre la compra y la venta.");
+}
+
 function pintar(){
+  adaptarPanel();
   kpis();
   grafMes();
   grafTk();
-  tabla("Est",  "Estrategia", agrupar(function(o){return o.e||"(sin etiqueta)";}), ORD.est);
-  tabla("Tipo", "Plazo",      agrupar(function(o){return o.tp;}), ORD.tipo);
-  tabla("Tk",   "Subyacente", agrupar(function(o){return o.t;}).filter(function(e){return e.n>=3;}), ORD.tk);
-  tabla("Cierre","Grupo",     agrupar(grupo), ORD.cierre);
-  tabla("CP",   "Tipo",       agrupar(function(o){ return o.cp==="C" ? "Call" : "Put"; }), ORD.cp);
-  grafCierre();
+  var op = hayOpciones();
+  if(op) tabla("Est", "Estrategia", agrupar(function(o){return o.e||"(sin etiqueta)";}), ORD.est);
+  tabla("Tipo", "Plazo", agrupar(function(o){return o.tp;}), ORD.tipo);
+  tabla("Tk", op ? "Subyacente" : "Activo",
+        agrupar(function(o){return o.t;}).filter(function(e){return e.n>=3;}), ORD.tk);
+  if(op){
+    tabla("Cierre","Grupo", agrupar(grupo), ORD.cierre);
+    tabla("CP",   "Tipo",   agrupar(function(o){ return o.cp==="C" ? "Call" : "Put"; }), ORD.cp);
+    grafCierre();
+  }
   tablaOps();
 }
 
@@ -1028,7 +1112,9 @@ function pintarEncabezado(){
   //  Las aperturas solo existen para opciones (salen del extracto crudo).
   //  Contarlas viendo acciones seria mezclar dos cosas distintas.
   var ap = A.filter(function(o){
-    return (o.cu || "Real") === F.cuenta && (!F.inst || F.inst[o["in"] || "Opciones"]);
+    var c = o.cu || "IBKR";
+    var ok = F.cuenta === TODAS ? c !== SIMULADA : c === F.cuenta;
+    return ok && (!F.inst || F.inst[o["in"] || "Opciones"]);
   }).length;
   g("rango").textContent = B.length + " operaciones cerradas, de " + f[0] + " a " + f[f.length-1]
     + (ap ? " · " + ap + " aperturas" : "")
