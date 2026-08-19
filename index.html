@@ -283,7 +283,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v36 · 19 ago 2026";
+var VERSION = "v37 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -374,7 +374,7 @@ var vis = function(){ return C.filter(pasa); };
 //  exclusivo = los valores no se pueden combinar: o todos, o uno solo.
 //  Es el caso del periodo: son etapas distintas de la cuenta y juntar dos
 //  no responde ninguna pregunta.
-function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCambiar){
+function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCambiar, sinConteo){
   //  `valores` puede ser un arreglo fijo o una funcion. Lo segundo hace
   //  falta en el periodo: al cambiar de cuenta las etapas son otras, y
   //  dejar botones de la cuenta que no estas viendo, todos en cero, es
@@ -395,9 +395,13 @@ function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCa
              + '<span class="marca">'+(todos?"✓":"")+'</span>todos</button>';
     html += valores.map(function(v){
       var on = F[campo][v];
+      //  El conteo al lado de cada boton ayuda cuando son pocos, pero con
+      //  siete anios la fila se vuelve larguisima. Ahi se omite: el total
+      //  filtrado ya sale arriba, en su propia tarjeta.
       return '<button class="'+cls+'" type="button" aria-pressed="'+on+'" data-v="'+v+'">'
            + '<span class="marca">'+(on?"✓":"")+'</span>'+(rotulo?rotulo(v):v)
-           + ' <span style="opacity:.65">'+(cont.get(v)||0)+'</span></button>';
+           + (sinConteo ? '' : ' <span style="opacity:.65">'+(cont.get(v)||0)+'</span>')
+           + '</button>';
     }).join("");
     g(destino).innerHTML = html;
 
@@ -501,7 +505,7 @@ var pintaAno = botonera("chipsAno", null, VAL_ANOS,
   function(){
     //  Cambiar de anio recorta los meses disponibles.
     ajustarMeses(); pintarBotoneras(); pintar();
-  });
+  }, true);
 var pintaPeriodo = botonera("chipsPeriodo", "pistaPeriodo", VAL_PERIODO, grupo, "periodo", null, true);
 var pintaCP      = botonera("chipsCP",      "pistaCP",      VAL_CP,
                             function(o){ return o.cp; }, "cp", CP_ROTULO, true);
@@ -641,8 +645,15 @@ function kpis(){
   var exp = v.filter(function(o){return o.x;});
   var pexp = exp.reduce(function(a,o){return a+o.g;},0);
   var com = v.reduce(function(a,o){return a+Math.abs(o.cm);},0);
+  //  El conteo va como tarjeta propia y no pegado a los botones de anio:
+  //  ahi ocupaba media fila, y aqui cambia con TODOS los filtros, que es
+  //  donde de verdad sirve.
+  var enCuenta = deCuenta().length;
   g("kpis").innerHTML =
-    tar("Resultado", usd(pnl), n+" operaciones cerradas", pnl>=0?"pos":"neg") +
+    tar("Operaciones", n.toLocaleString("en-US"),
+        n === enCuenta ? "todas las de esta cuenta"
+                       : "de " + enCuenta.toLocaleString("en-US") + " en la cuenta", "") +
+    tar("Resultado", usd(pnl), "neto de comisiones", pnl>=0?"pos":"neg") +
     tar("Aciertos", n?pct(gan.length/n*100):"—", gan.length+" de "+n, "") +
     (function(){
       //  Va junto a Aciertos a proposito: los dos numeros solo significan
