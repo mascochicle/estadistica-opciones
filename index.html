@@ -351,7 +351,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v68 · 19 ago 2026";
+var VERSION = "v69 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 //  Nombres completos para la lista de meses: el anio se elige arriba, asi
 //  que aqui basta con el mes y cabe escribirlo entero.
@@ -653,10 +653,14 @@ function pintaCuenta(){
 
   g("chipsCuenta").innerHTML = cuentasVisibles().map(function(v){
     var n = cont.get(v) || 0;
-    //  Con "todas" puesto, las cuentas que SI entran se ven marcadas, igual
-    //  que en instrumento. Antes quedaban todas apagadas y parecia que no
-    //  habia ninguna elegida. La simulada no se marca porque no entra.
-    var on = (F.cuenta === v) || (F.cuenta === TODAS && v !== SIMULADA);
+    //  Con "todas" puesto se marcan las cuentas que SI entran. Pero "entrar"
+    //  es aportar operaciones a lo que se esta viendo, no solo pertenecer al
+    //  grupo: con Acciones puesto, Binance no aporta ni una (solo tiene
+    //  cripto) y marcarla decia algo falso.
+    var aporta = C.some(function(o){
+      return cuentaDe(o) === v && (!F.inst || F.inst[instDe(o)]);
+    });
+    var on = (F.cuenta === v) || (F.cuenta === TODAS && v !== SIMULADA && aporta);
     //  El conteo ya no se pinta (lo dice la tarjeta Operaciones), pero
     //  sigue haciendo falta: sin operaciones el boton se deja apagado en vez
     //  de dejar entrar a una pantalla vacia que parece que se rompio.
