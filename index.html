@@ -172,8 +172,8 @@ tbody tr:hover td{background:var(--hundido)}
 svg{display:block;width:100%;height:auto;overflow:visible}
 .eje{fill:var(--tinta3);font-size:9.5px}
 /*  Los rotulos de la grafica por activo son nombres, no numeritos de eje:
-    se leen uno por uno y a 9.5px cuestan trabajo.  */
-#grafTk .eje{font-size:12px}
+    se leen uno por uno y a 9.5px en gris claro cuestan trabajo.  */
+#grafTk .eje{font-size:12px;fill:var(--tinta2)}
 #grafTk .eje.elegido{fill:var(--acento);font-weight:700}
 .valor{font-size:9px;font-weight:640;font-variant-numeric:tabular-nums;
   font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
@@ -307,7 +307,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v54 · 19 ago 2026";
+var VERSION = "v55 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -881,7 +881,10 @@ function grafTk(){
        + '<rect x="'+x.toFixed(1)+'" y="'+y+'" width="'+Math.max(ancho,1.5).toFixed(1)+
          '" height="'+alto+'" rx="'+r.toFixed(1)+'" fill="'+col+'"/>'
        + '<text class="eje'+(sel?" elegido":"")+'" x="'+(PL-7)+'" y="'+(y+alto-1)+'" text-anchor="end">'+k+'</text>'
-       + '<text class="eje" x="'+(W-PR+5)+'" y="'+(y+alto-1)+'" fill="'+
+       //  OJO: va en style= y no en fill=. El atributo fill del SVG pierde
+       //  contra la regla CSS de la clase .eje, asi que estas cantidades se
+       //  veian grises aunque el codigo pedia verde y rojo.
+       + '<text class="eje" x="'+(W-PR+5)+'" y="'+(y+alto-1)+'" style="fill:'+
          (v>=0?"var(--gana)":"var(--pierde)")+'">'+usd(v)+'</text>'
        + '</g>';
   });
