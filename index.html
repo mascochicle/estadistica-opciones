@@ -142,8 +142,13 @@ button.limpiar:hover{border-color:var(--tinta3);color:var(--tinta)}
   padding:15px 17px 17px;box-shadow:var(--sombra)}
 .tarjeta h2{font-size:14px;font-weight:660;margin:0 0 2px;letter-spacing:-.01em}
 .tarjeta .nota{font-size:12px;color:var(--tinta3);margin:0 0 12px;max-width:70ch}
-.par{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-@media (max-width:880px){.par{grid-template-columns:1fr}}
+/*  Rejilla unica y no parejas fijas: al esconder las tarjetas que solo
+    valen para opciones, su pareja se quedaba sola ocupando media pantalla
+    con un hueco al lado. Asi las que quedan se reacomodan solas.
+    align-items:start para que cada una mida lo suyo y no se estiren al
+    alto de la mas larga de su renglon.  */
+.rejilla{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+@media (max-width:880px){.rejilla{grid-template-columns:1fr}}
 
 table{width:100%;border-collapse:collapse;font-size:12.5px}
 th{text-align:right;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;
@@ -232,7 +237,7 @@ svg{display:block;width:100%;height:auto;overflow:visible}
 <div class="kpis" id="kpis"></div>
 
 
-<div class="par">
+<div class="rejilla">
   <div class="tarjeta">
     <h2>Resultado por mes</h2>
     <p class="nota">Arriba de la línea ganó, abajo perdió &mdash; la posición dice el signo,
@@ -245,9 +250,7 @@ svg{display:block;width:100%;height:auto;overflow:visible}
     ganó, a la izquierda perdió. Clic para filtrar ese subyacente.</p>
     <div id="grafTk"></div>
   </div>
-</div>
 
-<div class="par">
   <div class="tarjeta soloOpciones" id="cardEst">
     <h2>Por estrategia</h2>
     <p class="nota">Clic en el encabezado para ordenar.</p>
@@ -259,9 +262,7 @@ svg{display:block;width:100%;height:auto;overflow:visible}
     no los que le quedaban al cerrar.</p>
     <div class="scroll"><table><thead><tr id="hTipo"></tr></thead><tbody id="bTipo"></tbody></table></div>
   </div>
-</div>
 
-<div class="par">
   <div class="tarjeta">
     <h2 id="tTablaTk">Por subyacente</h2>
     <p class="nota">Solo los que tienen 3 operaciones o más.</p>
@@ -306,7 +307,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v51 · 19 ago 2026";
+var VERSION = "v52 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
