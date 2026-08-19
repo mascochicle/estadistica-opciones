@@ -306,7 +306,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v49 · 19 ago 2026";
+var VERSION = "v50 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -429,7 +429,7 @@ var vis = function(){ return C.filter(pasa); };
 //  exclusivo = los valores no se pueden combinar: o todos, o uno solo.
 //  Es el caso del periodo: son etapas distintas de la cuenta y juntar dos
 //  no responde ninguna pregunta.
-function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCambiar, sinConteo, todosAlFinal){
+function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCambiar, todosAlFinal){
   //  `valores` puede ser un arreglo fijo o una funcion. Lo segundo hace
   //  falta en el periodo: al cambiar de cuenta las etapas son otras, y
   //  dejar botones de la cuenta que no estas viendo, todos en cero, es
@@ -441,21 +441,19 @@ function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCa
     return n;
   }
   function repintar(){
+    //  Ningun boton lleva su conteo al lado. El numero de operaciones vive
+    //  en su tarjeta arriba, y el desglose por cada valor, en las tablas de
+    //  abajo -- donde ademas viene con acierto, razon y resultado. Repetirlo
+    //  en el boton alargaba las filas sin agregar nada.
     var valores = vals();
-    var cont = new Map();
-    deCuenta().forEach(function(o){ var k = clave(o); cont.set(k, (cont.get(k)||0)+1); });
     var todos = cuantos() === valores.length;
     var cls = exclusivo ? "chip uno" : "chip";
     var btnTodos = '<button class="'+cls+' todos" type="button" aria-pressed="'+todos+'" data-todos="1">'
                  + '<span class="marca">'+(todos?"✓":"")+'</span>todos</button>';
     var html = valores.map(function(v){
       var on = F[campo][v];
-      //  El conteo al lado de cada boton ayuda cuando son pocos, pero con
-      //  siete anios la fila se vuelve larguisima. Ahi se omite: el total
-      //  filtrado ya sale arriba, en su propia tarjeta.
       return '<button class="'+cls+'" type="button" aria-pressed="'+on+'" data-v="'+v+'">'
            + '<span class="marca">'+(on?"✓":"")+'</span>'+(rotulo?rotulo(v):v)
-           + (sinConteo ? '' : ' <span style="opacity:.65">'+(cont.get(v)||0)+'</span>')
            + '</button>';
     }).join("");
     //  "todos" al final donde Marco lo pidio asi (cuenta e instrumento);
@@ -561,13 +559,13 @@ var pintaInst = botonera("chipsInst", "pistaInst", VAL_INST, instDe, "inst", nul
     ["fPlazo","fEst","fTk","fMes","fCierre"].forEach(function(i){ g(i).value = ""; });
     llenarSelectores(); ajustarMeses();
     pintarBotoneras(); pintarEncabezado(); pintar();
-  }, false, true);
+  }, true);
 var pintaAno = botonera("chipsAno", null, VAL_ANOS,
                         function(o){ return o.f.slice(0,4); }, "anos", null, true,
   function(){
     //  Cambiar de anio recorta los meses disponibles.
     ajustarMeses(); pintarBotoneras(); pintar();
-  }, true);
+  });
 var pintaPeriodo = botonera("chipsPeriodo", "pistaPeriodo", VAL_PERIODO, grupo, "periodo", null, true);
 var pintaCP      = botonera("chipsCP",      "pistaCP",      VAL_CP,
                             function(o){ return o.cp; }, "cp", CP_ROTULO, true);
