@@ -167,6 +167,26 @@ body.ordenando .divisor{display:block}
 body.ordenando .rejilla{outline:1px dashed var(--linea2);outline-offset:9px;
   border-radius:4px}
 
+/*  AL REORDENAR, CASILLAS EN LUGAR DE COLUMNAS
+    El acomodo normal es en columnas: cada tarjeta se pega a la de arriba y no
+    quedan boquetes. Eso se ve bien, pero para arrastrar es enganoso -- la
+    columna corta termina antes y deja un vacio de cientos de pixeles que no
+    es de nadie, y soltar ahi no puede hacer lo que uno espera porque en un
+    flujo de columnas nadie elige en que columna cae una tarjeta: la elige el
+    navegador segun las alturas.
+    Mientras dura el modo se cambia a una rejilla de casillas, donde cada
+    tarjeta ocupa una y el sitio donde se suelta ES el sitio donde queda. La
+    casilla de mas al final -- el ::after -- es el "al final de todo", que
+    antes no existia en ningun lado.  */
+body.ordenando .rejilla{columns:auto;display:grid;grid-template-columns:1fr 1fr;
+  gap:18px;align-items:start}
+body.ordenando .rejilla.ancho{grid-template-columns:1fr}
+body.ordenando .rejilla > .tarjeta,
+body.ordenando .rejilla > .hueco{display:block;width:auto;margin:0}
+body.ordenando .rejilla::after{content:"";border:1.5px dashed var(--linea2);
+  border-radius:12px;min-height:70px;opacity:.7}
+@media (max-width:880px){body.ordenando .rejilla{grid-template-columns:1fr}}
+
 .botonera{background:var(--panel);border:1px solid var(--linea);border-radius:12px;
   padding:4px 13px;display:flex;flex-direction:column}
 .botonera .fila{display:flex;gap:11px;align-items:center;flex-wrap:wrap;padding:9px 0;
@@ -363,7 +383,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v74 · 19 ago 2026";
+var VERSION = "v75 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 //  Nombres completos para la lista de meses: el anio se elige arriba, asi
 //  que aqui basta con el mes y cabe escribirlo entero.
@@ -1542,6 +1562,7 @@ pintar();
 
   var modo = false, enVuelo = null, hueco = null;
   var dx = 0, dy = 0, ultimoCambio = 0;
+  var ultX = 0, ultY = 0, autoID = 0;
 
   function todas(){
     var out = [];
@@ -1596,12 +1617,18 @@ pintar();
       e.style.transform = "translate(" + ddx + "px," + ddy + "px)";
       //  Dos cuadros: uno para que el navegador acepte la posicion vieja y
       //  otro para soltarla. Con uno solo a veces se salta la animacion.
-      requestAnimationFrame(function(){
-        requestAnimationFrame(function(){
-          e.style.transition = "transform .18s cubic-bezier(.2,.7,.3,1)";
-          e.style.transform = "";
-        });
-      });
+      //
+      //  El temporizador es la red: en una pestana que no esta al frente el
+      //  navegador NO entrega cuadros, y sin el la tarjeta se quedaba
+      //  desplazada para siempre -- y con ella todas las cuentas de donde
+      //  esta cada cosa, porque getBoundingClientRect si ve el transform.
+      var soltar = function(){
+        if(e.style.transition !== "none") return;
+        e.style.transition = "transform .18s cubic-bezier(.2,.7,.3,1)";
+        e.style.transform = "";
+      };
+      requestAnimationFrame(function(){ requestAnimationFrame(soltar); });
+      setTimeout(soltar, 90);
     });
   }
 
@@ -1640,66 +1667,93 @@ pintar();
     card.style.pointerEvents = "none";
     card.style.transition = "none";
 
+    ultX = e.clientX; ultY = e.clientY;
+    if(!autoID) autoID = requestAnimationFrame(bordeando);
+
     window.addEventListener("pointermove", alMover);
     window.addEventListener("pointerup", alSoltar);
     window.addEventListener("pointercancel", alSoltar);
   }
 
-  function alMover(e){
-    if(!enVuelo) return;
-    enVuelo.style.transform =
-      "translate(" + (e.clientX - dx) + "px," + (e.clientY - dy) + "px)";
-
-    var ahora = e.timeStamp || Date.now();
-    if(ahora - ultimoCambio < 170) return;         // enfriamiento
-
-    var lista = todas();
-    var objetivo = null, antes = false;
-
-    //  Primero: el puntero encima de una tarjeta.
-    lista.some(function(el){
-      var r = el.getBoundingClientRect();
-      if(e.clientX < r.left || e.clientX > r.right) return false;
-      if(e.clientY < r.top || e.clientY > r.bottom) return false;
-      var medio = r.top + r.height / 2;
-      if(Math.abs(e.clientY - medio) < 12) return false;   // histeresis
-      objetivo = el;
-      antes = e.clientY < medio;
-      return true;
-    });
-
-    //  Si no: el hueco al final de una columna. Con cinco tarjetas en dos
-    //  columnas una queda mas corta, y ese vacio -- 300 px o mas -- no
-    //  aceptaba nada: se soltaba ahi y no pasaba nada, que es justo lo que
-    //  se sentia roto. Ahora se busca la tarjeta mas cercana DENTRO del
-    //  bloque donde esta el puntero y se pone despues de ella.
-    if(!objetivo){
-      var bloque = null;
-      conts.forEach(function(c){
-        var r = c.getBoundingClientRect();
-        if(e.clientX >= r.left && e.clientX <= r.right &&
-           e.clientY >= r.top  && e.clientY <= r.bottom) bloque = c;
-      });
-      if(!bloque) return;
-      var enBloque = lista.filter(function(el){ return el.parentNode === bloque; });
-      if(!enBloque.length) return;
-      //  la de la misma columna que esta mas arriba del puntero
-      var mejor = null, mejorD = Infinity;
-      enBloque.forEach(function(el){
-        var r = el.getBoundingClientRect();
-        var mismaCol = e.clientX >= r.left && e.clientX <= r.right;
-        var d = Math.abs(e.clientY - (r.top + r.height/2)) + (mismaCol ? 0 : 4000);
-        if(d < mejorD){ mejorD = d; mejor = el; antes = e.clientY < r.top; }
-      });
-      objetivo = mejor;
+  //  DONDE CAE LA TARJETA
+  //  Se recorren las tarjetas en el orden en que se leen -- renglon por
+  //  renglon, y dentro del renglon de izquierda a derecha -- y se devuelve la
+  //  primera que quede DESPUES del puntero; la tarjeta arrastrada se mete
+  //  antes de esa. Si no queda ninguna, va al final.
+  //
+  //  Se probo antes con la tarjeta de centro mas cercano y falla justo donde
+  //  mas se nota: con dos tarjetas de altura muy distinta en el mismo
+  //  renglon, el centro mas cercano a la casilla vacia del final era el de la
+  //  tarjeta corta de la izquierda, y la soltada se metia a media pagina en
+  //  lugar de irse al final. La distancia no sabe leer; el orden si.
+  //
+  //  Devuelve: una tarjeta = meterla antes de ella | null = al final |
+  //  undefined = no mover nada (histeresis).
+  function destinoEn(bloque, x, y, lista){
+    var cards = lista.filter(function(el){ return el.parentNode === bloque; });
+    for(var i = 0; i < cards.length; i++){
+      var r = cards[i].getBoundingClientRect();
+      if(y < r.top) return cards[i];             // renglon de mas arriba
+      if(y <= r.bottom){
+        if(x < r.left) return cards[i];          // misma fila, mas a la izquierda
+        if(x <= r.right){                        // justo encima de esta
+          var medio = r.top + r.height / 2;
+          //  Sin esta franja muerta el orden cambiaria de ida y vuelta
+          //  muchas veces por segundo con el puntero en el borde: eso es
+          //  exactamente el temblor.
+          if(Math.abs(y - medio) < 12) return undefined;
+          return y < medio ? cards[i] : (cards[i+1] || null);
+        }
+        //  a la derecha de esta: sigue con la de al lado
+      }
     }
-    if(!objetivo) return;
+    return null;                                  // al final del bloque
+  }
 
-    var destino = antes ? objetivo : objetivo.nextSibling;
-    if(destino === hueco) return;                  // ya esta ahi
+  function recolocar(x, y, ahora){
+    if(!enVuelo) return;
+    if(ahora - ultimoCambio < 170) return;        // enfriamiento
+
+    var bloque = null;
+    conts.forEach(function(c){
+      var r = c.getBoundingClientRect();
+      if(x >= r.left && x <= r.right && y >= r.top && y <= r.bottom) bloque = c;
+    });
+    if(!bloque) return;
+
+    var destino = destinoEn(bloque, x, y, todas());
+    if(destino === undefined) return;             // franja muerta
+    if(destino === hueco) return;                 // ya esta ahi
+    if(destino && destino.previousSibling === hueco) return;
 
     ultimoCambio = ahora;
-    conFlip(function(){ objetivo.parentNode.insertBefore(hueco, destino); });
+    conFlip(function(){ bloque.insertBefore(hueco, destino); });
+  }
+
+  //  DESPLAZAR SOLO AL LLEGAR A UN BORDE
+  //  Las graficas y las tablas no caben en una pantalla, asi que mover una
+  //  tarjeta de un bloque al otro obliga a bajar sin soltar. Va en un bucle
+  //  de cuadro y no en el evento de movimiento porque hay que seguir bajando
+  //  aunque el dedo se quede quieto en el borde.
+  function bordeando(){
+    if(!enVuelo){ autoID = 0; return; }
+    var zona = 110, v = 0;
+    if(ultY < zona) v = -Math.ceil((zona - ultY) / 5);
+    else if(ultY > innerHeight - zona) v = Math.ceil((ultY - (innerHeight - zona)) / 5);
+    if(v){
+      var y0 = window.scrollY;
+      window.scrollBy(0, v);
+      if(window.scrollY !== y0) recolocar(ultX, ultY, performance.now());
+    }
+    autoID = requestAnimationFrame(bordeando);
+  }
+
+  function alMover(e){
+    if(!enVuelo) return;
+    ultX = e.clientX; ultY = e.clientY;
+    enVuelo.style.transform =
+      "translate(" + (e.clientX - dx) + "px," + (e.clientY - dy) + "px)";
+    recolocar(e.clientX, e.clientY, e.timeStamp || performance.now());
   }
 
   function alSoltar(){
