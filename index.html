@@ -199,8 +199,6 @@ svg{display:block;width:100%;height:auto;overflow:visible}
   </div>
 </header>
 
-<div class="kpis" id="kpis"></div>
-
 <div class="botonera">
   <div class="fila" id="filaAno">
     <span class="etiq">Año</span>
@@ -215,6 +213,10 @@ svg{display:block;width:100%;height:auto;overflow:visible}
     <div class="chips" id="chipsCP"></div>
   </div>
 </div>
+
+<!--  Los numeros van DEBAJO de los cortes que los producen: primero se
+      elige que se esta mirando, y luego se lee el resultado de eso.  -->
+<div class="kpis" id="kpis"></div>
 
 <div class="filtros">
   <label>Estrategia <select id="fEst"></select></label>
@@ -301,7 +303,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v43 · 19 ago 2026";
+var VERSION = "v44 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
