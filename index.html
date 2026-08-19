@@ -73,11 +73,13 @@ header h1{font-size:27px;font-weight:660;letter-spacing:-.025em;margin:0;text-wr
     al cambiar de cuenta se movia todo de lugar.
     Con medida fija, los botones podran envolverse a un segundo renglon pero
     el bloque -- y los rotulos -- se quedan donde estaban.  */
-/*  Medida FIJA para que el bloque no se recorra al cambiar de cuenta, y lo
-    mas chica posible para que no se coma la mitad del encabezado: la fila
-    mas larga es la de anios de Binance (8 botones), y con el estilo
-    compacto de abajo caben en 425 px en vez de 630.  */
-.arriba{display:flex;flex-direction:column;gap:7px;width:min(100%,540px);flex:none}
+/*  Sin medida fija y aun asi no se mueve: aqui solo quedan Cuenta e
+    Instrumento, y la fila de Cuenta -- que es la mas ancha -- tiene siempre
+    los mismos tres botones con los mismos conteos. El bloque mide lo que
+    mide esa fila, pase lo que pase.
+    Los anios se fueron a la botonera de abajo justamente porque su ancho SI
+    cambiaba (4 anios en IBKR, 7 en Binance) y era lo que descuadraba todo.  */
+.arriba{display:flex;flex-direction:column;gap:7px;flex:none}
 .cuentabox{display:grid;grid-template-columns:92px minmax(0,1fr);gap:9px;
   align-items:start}
 /*  El rotulo se alinea con el PRIMER renglon de botones, no al centro de
@@ -124,10 +126,6 @@ button.limpiar:hover{border-color:var(--tinta3);color:var(--tinta)}
 .botonera .etiq{font-size:11px;color:var(--tinta3);text-transform:uppercase;letter-spacing:.05em;
   font-weight:640;min-width:58px}
 .chip.todos{border-style:dashed}
-/*  Los anios van sin palomita y con menos relleno: son ocho y no dicen
-    nada que el color del boton encendido no diga ya. Pasan de 72 a 47 px.  */
-.chips.compacto .chip{padding:5px 9px;gap:0}
-.chips.compacto .chip .marca{display:none}
 .chip.uno .marca{border-radius:50%}
 .chips{display:flex;gap:7px;flex-wrap:wrap}
 .chip{font:inherit;font-size:12.5px;padding:5px 12px;border-radius:999px;cursor:pointer;
@@ -198,16 +196,16 @@ svg{display:block;width:100%;height:auto;overflow:visible}
       <span class="etiq">Instrumento</span>
       <div class="chips" id="chipsInst"></div>
     </div>
-    <div class="cuentabox" id="filaAno">
-      <span class="etiq">Año</span>
-      <div class="chips compacto" id="chipsAno"></div>
-    </div>
   </div>
 </header>
 
 <div class="kpis" id="kpis"></div>
 
 <div class="botonera">
+  <div class="fila" id="filaAno">
+    <span class="etiq">Año</span>
+    <div class="chips" id="chipsAno"></div>
+  </div>
   <div class="fila">
     <span class="etiq">Periodo</span>
     <div class="chips" id="chipsPeriodo"></div>
@@ -303,7 +301,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v42 · 19 ago 2026";
+var VERSION = "v43 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
