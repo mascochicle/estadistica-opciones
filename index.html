@@ -153,13 +153,18 @@ button.limpiar:focus-visible{outline:2px solid var(--acento);outline-offset:2px}
   padding:15px 17px 17px;box-shadow:var(--sombra)}
 .tarjeta h2{font-size:14px;font-weight:660;margin:0 0 2px;letter-spacing:-.01em}
 .tarjeta .nota{font-size:12px;color:var(--tinta3);margin:0 0 12px;max-width:70ch}
-/*  Rejilla unica y no parejas fijas: al esconder las tarjetas que solo
-    valen para opciones, su pareja se quedaba sola ocupando media pantalla
-    con un hueco al lado. Asi las que quedan se reacomodan solas.
-    align-items:start para que cada una mida lo suyo y no se estiren al
-    alto de la mas larga de su renglon.  */
-.rejilla{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
-@media (max-width:880px){.rejilla{grid-template-columns:1fr}}
+/*  ACOMODO EN COLUMNAS, no en rejilla de renglones.
+    La rejilla alineaba por renglones: si una tarjeta era mas alta que su
+    vecina, la vecina dejaba un hueco hasta que empezaba el renglon
+    siguiente. Con tarjetas de altura muy distinta -- la de operaciones
+    contra la de calls y puts -- quedaban boquetes por todos lados.
+    En columnas cada tarjeta se pega a la de arriba y no hay renglones que
+    cuadrar, asi que el hueco desaparece pase lo que pase con los filtros.
+    Se lee hacia abajo por la columna izquierda y luego la derecha.  */
+.rejilla{columns:2;column-gap:18px}
+.rejilla > .tarjeta{break-inside:avoid;-webkit-column-break-inside:avoid;
+  display:inline-block;width:100%;margin:0 0 18px}
+@media (max-width:880px){.rejilla{columns:1}}
 
 table{width:100%;border-collapse:collapse;font-size:12.5px}
 th{text-align:right;font-size:10.5px;letter-spacing:.04em;text-transform:uppercase;
@@ -323,7 +328,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v65 · 19 ago 2026";
+var VERSION = "v66 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 //  Nombres completos para la lista de meses: el anio se elige arriba, asi
 //  que aqui basta con el mes y cabe escribirlo entero.
