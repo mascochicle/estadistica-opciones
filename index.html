@@ -135,9 +135,12 @@ button.limpiar:focus-visible{outline:2px solid var(--acento);outline-offset:2px}
     arrastra se saca del flujo y sigue al dedo SIN transicion ninguna --
     cualquier transicion ahi se siente como retraso -- y las demas se
     acomodan con una animacion corta.  */
-button.reord{background:transparent;border:1px solid var(--linea2);color:var(--tinta2);
-  border-radius:8px;padding:5px 11px;font:inherit;font-size:12.5px;cursor:pointer;
-  flex:none;white-space:nowrap}
+/*  Flotando abajo a la derecha y no en la fila de filtros: ahi apretaba a
+    los selectores y ademas no es un filtro, es un modo de la pagina.  */
+button.reord{position:fixed;right:20px;bottom:20px;z-index:40;
+  background:var(--panel);border:1px solid var(--linea2);color:var(--tinta2);
+  border-radius:999px;padding:9px 16px;font:inherit;font-size:12.5px;cursor:pointer;
+  white-space:nowrap;box-shadow:var(--sombra)}
 button.reord:hover{border-color:var(--tinta3);color:var(--tinta)}
 button.reord[aria-pressed="true"]{background:var(--acento-bg);border-color:var(--acento);
   color:var(--acento);font-weight:620}
@@ -150,6 +153,16 @@ button.reord:focus-visible{outline:2px solid var(--acento);outline-offset:2px}
   outline:1.5px solid var(--acento);will-change:transform}
 .hueco{border:1.5px dashed var(--acento);border-radius:12px;background:var(--acento-bg);
   opacity:.55;break-inside:avoid;display:inline-block;width:100%;margin:0 0 18px}
+
+/*  DIVISOR DE ORGANIZACION
+    Marca donde acaban las graficas y empiezan las tablas. No se ve en el uso
+    normal -- seria ruido -- y aparece solo al reordenar, que es cuando hace
+    falta saber a que grupo pertenece cada tarjeta.  */
+.divisor{display:none;margin:0;font-size:10.5px;letter-spacing:.14em;
+  text-transform:uppercase;color:var(--tinta3);font-weight:680}
+body.ordenando .divisor{display:block}
+body.ordenando .rejilla{outline:1px dashed var(--linea2);outline-offset:9px;
+  border-radius:4px}
 
 .botonera{background:var(--panel);border:1px solid var(--linea);border-radius:12px;
   padding:4px 13px;display:flex;flex-direction:column}
@@ -257,8 +270,6 @@ svg{display:block;width:100%;height:auto;overflow:visible}
   </select></label>
   <label class="soloOpciones" id="lblEtapa">Etapa <select id="fEtapa"></select></label>
   </div>
-  <button class="reord" id="reordenar" type="button"
-          title="Reordenar las tarjetas arrastrándolas" aria-pressed="false">Reordenar</button>
   <button class="limpiar" id="limpiar" type="button"
           title="Limpiar filtros" aria-label="Limpiar filtros">&#10005;</button>
 </div>
@@ -268,6 +279,7 @@ svg{display:block;width:100%;height:auto;overflow:visible}
 <div class="kpis" id="kpis"></div>
 
 
+<p class="divisor">Gráficas</p>
 <div class="rejilla" id="rejGraf">
   <div class="tarjeta" data-card="acum">
     <h2>Resultado acumulado</h2>
@@ -301,6 +313,7 @@ svg{display:block;width:100%;height:auto;overflow:visible}
   </div>
 </div>
 
+<p class="divisor">Tablas</p>
 <div class="rejilla" id="rejTablas">
   <div class="tarjeta soloOpciones" id="cardEst" data-card="estrategia">
     <h2>Por estrategia</h2>
@@ -336,6 +349,9 @@ svg{display:block;width:100%;height:auto;overflow:visible}
 <p class="pie" id="pie"></p>
 </div>
 
+<button class="reord" id="reordenar" type="button"
+        title="Reordenar las tarjetas arrastrándolas" aria-pressed="false">Reordenar</button>
+
 <div class="tip" id="tip"></div>
 
 <script>
@@ -351,7 +367,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v69 · 19 ago 2026";
+var VERSION = "v70 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 //  Nombres completos para la lista de meses: el anio se elige arriba, asi
 //  que aqui basta con el mes y cabe escribirlo entero.
@@ -1587,8 +1603,11 @@ pintar();
     var ahora = e.timeStamp || Date.now();
     if(ahora - ultimoCambio < 170) return;         // enfriamiento
 
+    var lista = todas();
     var objetivo = null, antes = false;
-    todas().some(function(el){
+
+    //  Primero: el puntero encima de una tarjeta.
+    lista.some(function(el){
       var r = el.getBoundingClientRect();
       if(e.clientX < r.left || e.clientX > r.right) return false;
       if(e.clientY < r.top || e.clientY > r.bottom) return false;
@@ -1598,6 +1617,32 @@ pintar();
       antes = e.clientY < medio;
       return true;
     });
+
+    //  Si no: el hueco al final de una columna. Con cinco tarjetas en dos
+    //  columnas una queda mas corta, y ese vacio -- 300 px o mas -- no
+    //  aceptaba nada: se soltaba ahi y no pasaba nada, que es justo lo que
+    //  se sentia roto. Ahora se busca la tarjeta mas cercana DENTRO del
+    //  bloque donde esta el puntero y se pone despues de ella.
+    if(!objetivo){
+      var bloque = null;
+      conts.forEach(function(c){
+        var r = c.getBoundingClientRect();
+        if(e.clientX >= r.left && e.clientX <= r.right &&
+           e.clientY >= r.top  && e.clientY <= r.bottom) bloque = c;
+      });
+      if(!bloque) return;
+      var enBloque = lista.filter(function(el){ return el.parentNode === bloque; });
+      if(!enBloque.length) return;
+      //  la de la misma columna que esta mas arriba del puntero
+      var mejor = null, mejorD = Infinity;
+      enBloque.forEach(function(el){
+        var r = el.getBoundingClientRect();
+        var mismaCol = e.clientX >= r.left && e.clientX <= r.right;
+        var d = Math.abs(e.clientY - (r.top + r.height/2)) + (mismaCol ? 0 : 4000);
+        if(d < mejorD){ mejorD = d; mejor = el; antes = e.clientY < r.top; }
+      });
+      objetivo = mejor;
+    }
     if(!objetivo) return;
 
     var destino = antes ? objetivo : objetivo.nextSibling;
@@ -1645,6 +1690,7 @@ pintar();
     btn.setAttribute("aria-pressed", modo);
     btn.textContent = modo ? "Listo" : "Reordenar";
     conts.forEach(function(c){ c.classList.toggle("ordenando", modo); });
+    document.body.classList.toggle("ordenando", modo);
   });
 
   conts.forEach(function(c){ c.addEventListener("pointerdown", alBajar); });
