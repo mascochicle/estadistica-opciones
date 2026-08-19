@@ -371,7 +371,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v71 · 19 ago 2026";
+var VERSION = "v72 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 //  Nombres completos para la lista de meses: el anio se elige arriba, asi
 //  que aqui basta con el mes y cabe escribirlo entero.
@@ -725,10 +725,10 @@ function llenar(sel, valores, etiqueta, todos){
 
 
 g("limpiar").onclick = function(){
+  //  Limpia FILTROS. No toca cuenta ni instrumento: esos dos son el
+  //  contexto, no un filtro. Antes esto devolvia al arranque y te sacaba
+  //  del instrumento que estabas viendo, que no es limpiar sino mudarte.
   F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = ""; F.etapa = ""; F.cp = "";
-  //  Devuelve al arranque (Acciones), no a "todos": limpiar es volver a
-  //  donde estabas al abrir, no a un estado que nunca viste.
-  instPorDefecto();
   reiniciar("anos", VAL_ANOS);
         pintarBotoneras();
   ajustarMeses();
@@ -1457,16 +1457,11 @@ function adaptarPanel(){
 //  encendido". El arranque ya trae Acciones sola, y si eso contara como
 //  filtro la X apareceria encendida nada mas abrir, avisando de algo que el
 //  usuario no hizo.
-function instEsDefecto(){
-  var v = VAL_INST();
-  var pref = v.indexOf(INST_PREFERIDO) >= 0;
-  return v.every(function(x){
-    return F.inst[x] === (pref ? (x === INST_PREFERIDO) : true);
-  });
-}
 function hayFiltros(){
+  //  Cuenta e instrumento NO entran: son el contexto de lo que se mira, y
+  //  la X no los toca. Si contaran, la X saldria encendida por estar viendo
+  //  opciones y al picarla no pasaria nada visible.
   if(F.plazo || F.est || F.tk || F.mes || F.cierre || F.etapa || F.cp) return true;
-  if(!instEsDefecto()) return true;
   return VAL_ANOS().some(function(x){ return !F.anos[x]; });
 }
 
