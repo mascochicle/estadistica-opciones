@@ -118,10 +118,16 @@ header .sub{color:var(--tinta2);font-size:13.5px;margin:5px 0 0}
 select{background:var(--hundido);border:1px solid var(--linea2);color:var(--tinta);
   border-radius:8px;padding:5px 8px;font:inherit;font-size:12.5px;max-width:190px}
 select:focus{outline:2px solid var(--acento);outline-offset:1px}
-button.limpiar{background:transparent;border:1px solid var(--linea2);color:var(--tinta2);
-  border-radius:8px;padding:5px 12px;font:inherit;font-size:12.5px;cursor:pointer;
-  white-space:nowrap;flex:none}
+/*  Una X y no "Limpiar filtros": el texto no cabia y el boton se caia a un
+    segundo renglon. Se enciende en color cuando hay algo que limpiar, para
+    que no sea una X muda que uno no sabe si hace algo.  */
+button.limpiar{background:transparent;border:1px solid var(--linea2);color:var(--tinta3);
+  border-radius:50%;width:28px;height:28px;padding:0;font:inherit;font-size:13px;
+  line-height:1;cursor:pointer;flex:none;display:grid;place-items:center;
+  transition:color .12s,border-color .12s,background .12s}
 button.limpiar:hover{border-color:var(--tinta3);color:var(--tinta)}
+button.limpiar.activo{border-color:var(--acento);color:var(--acento);background:var(--acento-bg)}
+button.limpiar:focus-visible{outline:2px solid var(--acento);outline-offset:2px}
 
 .botonera{background:var(--panel);border:1px solid var(--linea);border-radius:12px;
   padding:4px 13px;display:flex;flex-direction:column}
@@ -233,7 +239,8 @@ svg{display:block;width:100%;height:auto;overflow:visible}
   </select></label>
   <label class="soloOpciones" id="lblEtapa">Etapa <select id="fEtapa"></select></label>
   </div>
-  <button class="limpiar" id="limpiar" type="button">Limpiar filtros</button>
+  <button class="limpiar" id="limpiar" type="button"
+          title="Limpiar filtros" aria-label="Limpiar filtros">&#10005;</button>
 </div>
 
 <!--  Los numeros van DEBAJO de los cortes que los producen: primero se
@@ -311,7 +318,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v57 · 19 ago 2026";
+var VERSION = "v58 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 var g = function(id){ return document.getElementById(id); };
 var usd = function(n,d){ d = d||0; return (n<0?"−":"")+"$"+Math.abs(n).toLocaleString("en-US",
@@ -1102,8 +1109,21 @@ function adaptarPanel(){
         : "Días entre la compra y la venta.");
 }
 
+//  Hay algo que limpiar? Cuenta como filtro cualquier cosa distinta del
+//  estado de arranque, incluidas las botoneras a medio encender.
+function hayFiltros(){
+  if(F.plazo || F.est || F.tk || F.mes || F.cierre || F.etapa || F.cp) return true;
+  var parcial = function(campo, valores){
+    var v = (typeof valores === "function") ? valores() : valores;
+    return v.some(function(x){ return !F[campo][x]; });
+  };
+  return parcial("inst", VAL_INST) || parcial("anos", VAL_ANOS);
+}
+
 function pintar(){
   adaptarPanel();
+  var lim = g("limpiar");
+  if(lim) lim.className = hayFiltros() ? "limpiar activo" : "limpiar";
   kpis();
   grafMes();
   grafTk();
