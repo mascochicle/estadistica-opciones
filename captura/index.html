@@ -197,8 +197,9 @@ WhatsApp, Drive, tu galería&mdash; y de paso te quedan respaldados.</p>
   <p>Son <span id="dlgN"></span> anotaciones, todas de un jalón. Los gráficos van aparte:
   el botón de abajo los saca de la app para que los puedas mandar.</p>
   <textarea id="dlgTxt" readonly></textarea>
+  <div class="fila"><button class="pri" id="dlgDrive">Mandar a Drive</button></div>
   <div class="fila">
-    <button class="pri" id="dlgCopiar">Copiar</button>
+    <button id="dlgCopiar">Copiar</button>
     <button id="dlgCerrar">Cerrar</button>
   </div>
   <div class="fila"><button id="dlgFotos">Sacar los gráficos</button></div>
@@ -221,7 +222,7 @@ var ESTRATEGIAS = ["0DTE","Gap a la alza","Gap a la alza IMP","Gap B a la alza",
   "Hanger diario","Hanger Semanal","Modelo de los 4 pasos","3 semanas","Verde Rojo semanal",
   "Estrategia earnings","Fed speech","Estrategia Inflacion","Método propio","Sin estrategia clara"];
 var LLAVE_VIEJA = "capturas_v1";
-var VERSION = "v19 · 18 ago 2026";     // se sella al publicar
+var VERSION = "v94 · 20 ago 2026";     // se sella al publicar
 var MAX_LADO = 1100, CALIDAD = 0.62;
 
 var g = function(id){ return document.getElementById(id); };
@@ -515,6 +516,51 @@ g("exportar").onclick = function(){
   g("dlgN").textContent = datos.length;
   g("dlg").showModal();
 };
+// ---------------------------------------------------------- mandar a Drive
+//  El respaldo de OneDrive a Google Drive resulto ser de DOBLE VIA: se probo
+//  el 20-ago-2026 creando un archivo en Drive y bajo a la computadora en
+//  menos de 20 segundos. Por eso esto sirve: lo que se suelte en la carpeta
+//  de Drive aparece solo en la carpeta del proyecto, y el .bat lo levanta
+//  sin que Marco toque la computadora.
+//
+//  Se comparte un ARCHIVO y no texto suelto. Compartir texto deja que cada
+//  app decida que hacer con el -- Drive a veces lo vuelve documento, a veces
+//  ni lo acepta -- y con un .txt de verdad siempre aterriza como archivo.
+//
+//  El nombre lleva fecha y hora para que cada envio sea un archivo nuevo:
+//  si todos se llamaran igual, Drive iria dejando "anotaciones (1)",
+//  "anotaciones (2)"... o pisando el anterior. Del otro lado,
+//  cruzar_anotaciones.py lee TODOS los anotaciones*.txt, y repetir una
+//  anotacion no hace dano porque solo llena casillas vacias.
+function nombreArchivo(){
+  var d = new Date(), p = function(n){ return (n<10?"0":"")+n; };
+  return "anotaciones_" + d.getFullYear() + "-" + p(d.getMonth()+1) + "-" + p(d.getDate())
+       + "_" + p(d.getHours()) + p(d.getMinutes()) + ".txt";
+}
+g("dlgDrive").onclick = async function(){
+  var b = this, txt = g("dlgTxt").value;
+  if(!txt){ return; }
+  try{
+    var f = new File([txt], nombreArchivo(), {type: "text/plain"});
+    if(navigator.canShare && navigator.canShare({files: [f]})){
+      await navigator.share({files: [f], title: "Anotaciones"});
+      b.textContent = "Mandado ✓";
+    } else if(navigator.share){
+      //  Sin compartir archivos (iPhone viejo, navegador de escritorio):
+      //  se manda el texto, que es mejor que nada.
+      await navigator.share({text: txt, title: "Anotaciones"});
+      b.textContent = "Mandado ✓";
+    } else {
+      b.textContent = "Aquí no se puede — usa Copiar";
+    }
+  }catch(e){
+    //  Cancelar la hoja de compartir tira AbortError. No es un error que
+    //  valga la pena enseñar: el usuario decidio no mandarlo.
+    b.textContent = (e && e.name === "AbortError") ? "Mandar a Drive" : "No se pudo — usa Copiar";
+  }
+  setTimeout(function(){ b.textContent = "Mandar a Drive"; }, 2600);
+};
+
 g("dlgCopiar").onclick = async function(){
   var t = g("dlgTxt"), b = this;
   t.select(); t.setSelectionRange(0, 999999);
