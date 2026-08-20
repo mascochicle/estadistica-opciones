@@ -204,6 +204,14 @@ body.ordenando .rejilla{outline:1px dashed var(--linea2);outline-offset:9px;
 .riel .etiq{display:block;font-size:10.5px;color:var(--tinta3);text-transform:uppercase;
   letter-spacing:.05em;font-weight:680;margin:0 0 7px}
 .riel .chips{gap:6px}
+/*  El rotulo comparte renglon con el interruptor de "varios".  */
+.etiqfila{display:flex;align-items:center;justify-content:space-between;gap:8px;margin:0 0 7px}
+.riel .etiqfila .etiq{margin:0}
+.varios{display:flex;align-items:center;gap:5px;cursor:pointer;user-select:none;
+  font-size:10px;letter-spacing:.04em;text-transform:uppercase;font-weight:640;
+  color:var(--tinta3)}
+.varios:hover{color:var(--tinta2)}
+.varios input{width:12px;height:12px;margin:0;cursor:pointer;accent-color:var(--acento)}
 .riel .chip{font-size:12px;padding:4px 10px}
 
 .indice{display:flex;flex-direction:column;gap:1px}
@@ -373,7 +381,11 @@ svg{display:block;width:100%;height:auto;overflow:visible}
     <div class="chips" id="chipsInst"></div>
   </div>
   <div class="rgrupo" id="filaOper">
-    <span class="etiq">Operativa</span>
+    <div class="etiqfila">
+      <span class="etiq">Operativa</span>
+      <label class="varios" title="Permite juntar dos o más operativas">
+        <input type="checkbox" id="operVarios"> varios</label>
+    </div>
     <div class="chips" id="chipsOper"></div>
   </div>
 
@@ -520,7 +532,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v84 · 19 ago 2026";
+var VERSION = "v85 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 //  Nombres completos para la lista de meses: el anio se elige arriba, asi
 //  que aqui basta con el mes y cabe escribirlo entero.
@@ -723,7 +735,13 @@ function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCa
     vals().forEach(function(v){ if(F[campo][v]) n++; });
     return n;
   }
+  //  `exclusivo` acepta una funcion: la operativa cambia de modo con el
+  //  interruptor "varios" y tiene que poder decidirlo en cada pintada, no
+  //  una sola vez al crear la botonera.
+  function modo(){ return typeof exclusivo === "function" ? exclusivo() : exclusivo; }
+
   function repintar(){
+    var exc = modo();
     //  Ningun boton lleva su conteo al lado. El numero de operaciones vive
     //  en su tarjeta arriba, y el desglose por cada valor, en las tablas de
     //  abajo -- donde ademas viene con acierto, razon y resultado. Repetirlo
@@ -735,7 +753,7 @@ function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCa
     //  es casi siempre: los de otra cuenta nunca se prenden.
     var base = (hay && hay.length) ? hay : valores;
     var todos = base.every(function(v){ return F[campo][v]; });
-    var cls = exclusivo ? "chip uno" : "chip";
+    var cls = exc ? "chip uno" : "chip";
     var btnTodos = '<button class="'+cls+' todos" type="button" aria-pressed="'+todos+'" data-todos="1">'
                  + '<span class="marca">'+(todos?"✓":"")+'</span>todos</button>';
     var html = valores.map(function(v){
@@ -760,9 +778,9 @@ function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCa
         if(b.dataset.todos){
           //  En los combinables funciona en los dos sentidos; en los
           //  exclusivos solo enciende, porque cero no es un estado util ahi.
-          var prender = exclusivo || !todos;
+          var prender = exc || !todos;
           vals().forEach(function(v){ F[campo][v] = prender; });
-        } else if(exclusivo){
+        } else if(exc){
           var v = b.dataset.v;
           var solo = F[campo][v] && cuantos() === 1;
           //  "fijo" = picar el que ya esta puesto no hace nada. En operativa
@@ -770,7 +788,7 @@ function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCa
           //  abajo; que la segunda picada regresara a "todos" obligaba a
           //  volver a elegirla y apagar las otras a mano. Para ver todas
           //  esta el boton de todas.
-          if(solo && exclusivo === "fijo") return;
+          if(solo && exc === "fijo") return;
           //  En los demas, volver a picar el que estaba solo regresa a
           //  "todos", para poder deshacer sin ir a buscar el boton.
           vals().forEach(function(x){ F[campo][x] = solo ? true : (x === v); });
@@ -790,7 +808,7 @@ function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCa
     if(elPista){
       elPista.textContent = n === 0 ? "ninguno"
                           : n === valores.length ? "todos"
-                          : exclusivo ? "solo uno"
+                          : exc ? "solo uno"
                           : n + " de " + valores.length;
       elPista.style.color = n === 0 ? "var(--pierde)" : "";
     }
@@ -955,8 +973,38 @@ var pintaInst = botonera("chipsInst", "pistaInst", TODOS_INST, instDe, "inst", n
 
 //  Combinable y no exclusiva: hoy mismo Marco corre dos a la vez -- acciones
 //  swing y cripto -- y obligar a elegir una sola no dejaria ver eso.
-var pintaOper = botonera("chipsOper", null, TODAS_OPER, operDe, "oper", null, "fijo",
+//  ELEGIR VARIAS OPERATIVAS
+//  De normal se ve una sola: el paso natural es elegir instrumento arriba y
+//  operativa abajo, y ahi tener que apagar las otras a mano era pura chamba.
+//  Pero juntar dos es una pregunta legitima -- hoy mismo Marco corre acciones
+//  swing y cripto a la vez -- asi que el modo se prende con un interruptor
+//  que se recuerda entre visitas.
+var operMulti = false;
+try{ operMulti = localStorage.getItem("operVarios") === "1"; }catch(e){}
+
+var pintaOper = botonera("chipsOper", null, TODAS_OPER, operDe, "oper", null,
+  function(){ return operMulti ? false : "fijo"; },
   function(){ pintaOper(); pintarEncabezado(); pintar(); }, true, VAL_OPER, saltarOper);
+
+(function(){
+  var c = g("operVarios");
+  if(!c) return;
+  c.checked = operMulti;
+  c.onchange = function(){
+    operMulti = c.checked;
+    try{ localStorage.setItem("operVarios", operMulti ? "1" : "0"); }catch(e){}
+    if(!operMulti){
+      //  Al volver a "una sola" con varias puestas se queda la primera. Se
+      //  respeta el caso de tenerlas TODAS puestas, que en modo de una sola
+      //  sigue siendo un estado valido: es el boton "todos".
+      var hay = VAL_OPER();
+      var enc = hay.filter(function(v){ return F.oper[v]; });
+      if(enc.length > 1 && enc.length < hay.length)
+        TODAS_OPER().forEach(function(v){ F.oper[v] = (v === enc[0]); });
+    }
+    pintaOper(); pintarEncabezado(); pintar();
+  };
+})();
 
 //  Las dos cuentas se muestran SIEMPRE, aunque una este vacia.
 //  Antes la fila se escondia hasta que hubiera algo simulado, y el efecto
