@@ -358,6 +358,10 @@ svg{display:block;width:100%;height:auto;overflow:visible}
     <span class="etiq">Instrumento</span>
     <div class="chips" id="chipsInst"></div>
   </div>
+  <div class="rgrupo" id="filaOper">
+    <span class="etiq">Operativa</span>
+    <div class="chips" id="chipsOper"></div>
+  </div>
 
   <nav class="indice" id="indice">
     <span class="etiq">Ir a</span>
@@ -502,7 +506,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v80 · 19 ago 2026";
+var VERSION = "v81 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 //  Nombres completos para la lista de meses: el anio se elige arriba, asi
 //  que aqui basta con el mes y cabe escribirlo entero.
@@ -544,6 +548,57 @@ function grupo(o){
   return o.f < SEM2 ? "Seminario 1" : "Seminario 2";
 }
 
+
+//  OPERATIVA — EL NIVEL DE ARRIBA DE ESTRATEGIA
+//
+//  Marco lleva varias formas de operar en paralelo y no son comparables
+//  entre si: acciones a semanas, cripto a meses, opciones del seminario,
+//  0DTE (parado desde ago-2026) y mas adelante futuros. Cada una tiene sus
+//  reglas y su propio resultado.
+//
+//  "Estrategia" ya estaba tomada por el nivel de abajo -- PM40, Gap a la
+//  alza, Piso Fuerte -- que son las del seminario y ya vienen etiquetadas en
+//  561 operaciones de la bitacora. Renombrar ESE nivel habria obligado a
+//  cambiar la columna del Excel, su lista desplegable y todo lo capturado;
+//  se le puso nombre al nivel nuevo, que es el que no tenia.
+//
+//  NO SE CAPTURA A MANO. Se deduce de instrumento + plazo + grupo, que ya
+//  estan. La bitacora anterior se murio de tanto llenar casillas.
+var OPERATIVAS = ["Acciones swing", "Acciones intradía", "Opciones seminario",
+                  PROPIO, "0DTE", "Cripto swing", "Cripto intradía",
+                  "Futuros swing", "Futuros intradía"];
+
+function operDe(o){
+  var i = instDe(o);
+  if(i === "Opciones"){
+    var gr = grupo(o);
+    //  El 0DTE sale del grupo y no del plazo: la regla de Marco pide ticker
+    //  SPX/SPXW/SPY *y* comprada el dia que vence. Otra opcion con plazo 0
+    //  fue un dedazo, no una operativa.
+    if(gr === "0DTE") return "0DTE";
+    if(gr === PROPIO) return PROPIO;
+    return "Opciones seminario";
+  }
+  //  Lo demas se parte por horizonte, que es lo que de verdad cambia como se
+  //  opera. Sirve igual para futuros el dia que entren.
+  return i + (o.tp === "Intradía" ? " intradía" : " swing");
+}
+
+//  Solo las operativas que existen en lo que se esta viendo. Se mide contra
+//  cuenta e instrumento -- los dos cortes de arriba -- para que no queden
+//  botones que dejarian la pantalla vacia.
+function VAL_OPER(){
+  var hay = {};
+  C.forEach(function(o){
+    if(!enCuentaElegida(o)) return;
+    if(F.inst && !F.inst[instDe(o)]) return;
+    hay[operDe(o)] = 1;
+  });
+  var orden = OPERATIVAS.filter(function(v){ return hay[v]; });
+  Object.keys(hay).forEach(function(v){ if(orden.indexOf(v) < 0) orden.push(v); });
+  return orden;
+}
+
 //  CUENTA — el corte mas grueso, y el unico que NO se puede combinar.
 //
 //  Real y simulada nunca se suman. Un P&L que mezcle dinero de verdad con
@@ -579,7 +634,7 @@ var instDe = function(o){ return o["in"] || "Opciones"; };
 //  Los tres cortes que mas se comparan van como botones y no como listas:
 //  se pueden encender varios a la vez, o apagar los que estorben. Cada fila
 //  guarda el conjunto de los ENCENDIDOS; con todos encendidos no filtra.
-var F = {cuenta:"IBKR", inst:null, anos:null, cp:"", etapa:"", plazo:"", est:"", tk:"", mes:"", cierre:"", dia:""};
+var F = {cuenta:"IBKR", inst:null, oper:null, anos:null, cp:"", etapa:"", plazo:"", est:"", tk:"", mes:"", cierre:"", dia:""};
 if(CUENTAS.indexOf(F.cuenta) < 0) F.cuenta = CUENTAS[0] || "IBKR";
 
 //  Todo lo demas se cuenta y se filtra DENTRO de la cuenta elegida, para
@@ -605,13 +660,15 @@ function enCuentaElegida(o){
 
 function deCuenta(){
   return C.filter(function(o){
-    return enCuentaElegida(o) && (!F.inst || F.inst[instDe(o)]);
+    return enCuentaElegida(o) && (!F.inst || F.inst[instDe(o)])
+           && (!F.oper || F.oper[operDe(o)]);
   });
 }
 
 function pasa(o){
   if(!enCuentaElegida(o)) return false;
   if(F.inst    && !F.inst[instDe(o)]) return false;
+  if(F.oper    && !F.oper[operDe(o)]) return false;
   if(F.etapa    && grupo(o) !== F.etapa) return false;
   if(F.plazo   && o.tp !== F.plazo) return false;
   //  Una accion no es call ni put: el filtro no le aplica en vez de
@@ -700,7 +757,7 @@ function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCa
     //  una botonera sin valores no dice nada: se esconde su fila entera.
     //  Se buscan las dos clases porque unas botoneras viven en la botonera
     //  de abajo (.fila) y otras en el encabezado (.cuentabox).
-    var fila = g(destino).closest ? g(destino).closest(".fila, .cuentabox") : null;
+    var fila = g(destino).closest ? g(destino).closest(".fila, .cuentabox, .rgrupo") : null;
     if(fila) fila.style.display = valores.length ? "" : "none";
   }
   return repintar;
@@ -761,6 +818,13 @@ function instPorDefecto(){
 }
 
 instPorDefecto();
+//  OJO CON EL ORDEN: la operativa va ANTES que los anios.
+//  deCuenta() ya respeta la operativa, y VAL_ANOS se apoya en deCuenta. Si
+//  los anios se recalculan primero, se calculan con la operativa VIEJA --
+//  las de acciones cuando ya estas viendo opciones -- deCuenta devuelve cero
+//  filas, la lista de anios sale vacia y el filtro de anio termina apagando
+//  TODO. La pantalla quedaba en cero sin decir por que.
+reiniciar("oper",    VAL_OPER);
 reiniciar("anos",    VAL_ANOS);
 
 //  Excluyente, como el periodo. Combinable parecia mejor idea hasta que se
@@ -773,10 +837,17 @@ var pintaInst = botonera("chipsInst", "pistaInst", VAL_INST, instDe, "inst", nul
     //  Las etapas y los Call/Put de un instrumento no existen en el otro.
     //  Arrastrarlos deja la pantalla vacia sin decir por que.
         F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = ""; F.etapa = ""; F.cp = ""; F.dia = "";
+    reiniciar("oper", VAL_OPER);      // antes que los anios, ver arriba
     reiniciar("anos", VAL_ANOS);
  ajustarMeses();
     pintarBotoneras(); pintarEncabezado(); pintar();
   }, true);
+
+
+//  Combinable y no exclusiva: hoy mismo Marco corre dos a la vez -- acciones
+//  swing y cripto -- y obligar a elegir una sola no dejaria ver eso.
+var pintaOper = botonera("chipsOper", null, VAL_OPER, operDe, "oper", null, false,
+  function(){ pintaOper(); pintarEncabezado(); pintar(); }, true);
 
 //  Las dos cuentas se muestran SIEMPRE, aunque una este vacia.
 //  Antes la fila se escondia hasta que hubiera algo simulado, y el efecto
@@ -838,6 +909,7 @@ function pintaCuenta(){
       //  mira el instrumento, asi que tienen que correr despues de este.
       instPorDefecto();
               F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = ""; F.etapa = ""; F.cp = ""; F.dia = "";
+      reiniciar("oper", VAL_OPER);    // antes que los anios, ver arriba
       reiniciar("anos", VAL_ANOS);
  ajustarMeses();
       pintarBotoneras(); pintarEncabezado(); pintar();
@@ -846,7 +918,7 @@ function pintaCuenta(){
   //  Sin nota al lado: el boton encendido ya dice de que cuenta se habla.
 }
 
-function pintarBotoneras(){ pintaCuenta(); pintaInst(); }
+function pintarBotoneras(){ pintaCuenta(); pintaInst(); pintaOper(); }
 
 // ---------------------------------------------------------------- selectores
 function llenar(sel, valores, etiqueta, todos){
@@ -1991,6 +2063,10 @@ function tituloContexto(){
   var inst = !puestos.length ? "Todo"
            : (puestos.length === hay.length && hay.length > 1) ? "Todo"
            : puestos.join(" y ");
+  //  Si hay una operativa acotada, ELLA es el sujeto: es mas precisa que el
+  //  instrumento y es lo que se acaba de elegir en el riel.
+  var ho = VAL_OPER(), po = ho.filter(function(v){ return !F.oper || F.oper[v]; });
+  if(po.length && po.length < ho.length) inst = po.join(" y ");
   var cta = F.cuenta === TODAS ? "todas las cuentas" : F.cuenta;
   e.innerHTML = inst + ' <span class="mut">en ' + cta + "</span>";
 }
