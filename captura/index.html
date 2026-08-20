@@ -83,6 +83,10 @@ input[type=text]:focus,input[type=url]:focus{outline:none;border-color:var(--ace
 .chico{margin-left:auto;background:transparent;border:1px solid var(--linea2);color:var(--tinta2);
   border-radius:9px;padding:7px 12px;font-size:12.5px;min-height:38px}
 .chico:hover{border-color:var(--acento);color:var(--acento)}
+/*  El `margin-left:auto` de .chico empuja a la derecha, y con DOS botones
+    cada uno se empujaba por su cuenta y quedaba un hueco de 84 px entre
+    ellos. El segundo se pega al primero.  */
+#masOpc{margin-left:6px;padding-left:12px;padding-right:12px;font-size:16px;line-height:1}
 
 ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:7px}
 li{background:var(--panel);border:1px solid var(--linea);border-radius:11px;padding:10px 12px;
@@ -178,32 +182,37 @@ textarea{width:100%;height:180px;background:var(--fondo);color:var(--tinta2);bor
 
 <div class="barra">
   <span class="cuenta" id="cuenta">Anotadas</span>
-  <button class="chico" id="exportar">Copiar todas</button>
+  <button class="chico" id="exportar">Enviar</button>
+  <button class="chico" id="masOpc" title="Otras formas de mandarlas">⋯</button>
 </div>
 
 <ul id="lista"></ul>
 <p class="sinnada" id="sinnada">Todavía no has anotado nada.</p>
 
 <p class="pie">Todo se guarda en este teléfono y funciona sin señal. Las anotaciones se
-<b>acumulan</b>: no hay que mandar nada de una en una. Cuando quieras pasármelas, dale a
-<b>Copiar todas</b> y pégamelas en el chat &mdash; una sola vez, con todas.
+<b>acumulan</b> y <b>Enviar</b> las manda todas de un jalón &mdash; nunca de una en una.
+Llegan solas a la carpeta de la computadora, no hay que elegir dónde guardarlas.
+<br>Mandar de más no hace daño: se manda siempre el historial completo y del otro lado
+se descartan las repetidas.
 <br><b>Los gráficos viven dentro de esta app</b>, no en tu galería: si la desinstalas o borras
 los datos del sitio, se van con ella. Con <b>Sacar</b> los mandas a donde quieras &mdash;
 WhatsApp, Drive, tu galería&mdash; y de paso te quedan respaldados.</p>
 </div>
 
 <dialog id="dlg"><div class="dlg">
-  <h3>Copia esto y pégamelo</h3>
-  <p>Son <span id="dlgN"></span> anotaciones, todas de un jalón. Los gráficos van aparte:
-  el botón de abajo los saca de la app para que los puedas mandar.</p>
+  <h3>Otras formas de mandarlas</h3>
+  <p>Lo normal es <b>Enviar</b>, que las manda solas a la carpeta. Esto es para
+  cuando no se pueda: son <span id="dlgN"></span> anotaciones, siempre todas.</p>
   <textarea id="dlgTxt" readonly></textarea>
-  <div class="fila"><button class="pri" id="dlgEnviar">Enviar</button></div>
   <div class="fila">
+    <button class="pri" id="dlgEnviar">Enviar</button>
     <button id="dlgDrive">Compartir</button>
     <button id="dlgCopiar">Copiar</button>
+  </div>
+  <div class="fila">
+    <button class="chico" id="dlgCfg">Envío automático</button>
     <button id="dlgCerrar">Cerrar</button>
   </div>
-  <div class="fila"><button class="chico" id="dlgCfg">Envío automático</button></div>
   <div id="cfg" style="display:none;margin-top:10px">
     <p style="margin:0 0 7px">Pega aquí lo que te dio el script de Drive. Se guarda
     solo en este teléfono. Ver <b>Puente Drive — como instalarlo</b>.</p>
@@ -236,7 +245,7 @@ var ESTRATEGIAS = ["0DTE","Gap a la alza","Gap a la alza IMP","Gap B a la alza",
   "Hanger diario","Hanger Semanal","Modelo de los 4 pasos","3 semanas","Verde Rojo semanal",
   "Estrategia earnings","Fed speech","Estrategia Inflacion","Método propio","Sin estrategia clara"];
 var LLAVE_VIEJA = "capturas_v1";
-var VERSION = "v95 · 20 ago 2026";     // se sella al publicar
+var VERSION = "v96 · 20 ago 2026";     // se sella al publicar
 var MAX_LADO = 1100, CALIDAD = 0.62;
 
 var g = function(id){ return document.getElementById(id); };
@@ -519,15 +528,56 @@ function iso(ts){
   var d = new Date(ts), p = function(n){ return (n<10?"0":"")+n; };
   return d.getFullYear()+"-"+p(d.getMonth()+1)+"-"+p(d.getDate())+" "+p(d.getHours())+":"+p(d.getMinutes());
 }
-g("exportar").onclick = function(){
-  if(!datos.length){ avisar("No hay nada que copiar todavía.", false); return; }
-  g("dlgTxt").value = datos.slice().sort(function(a,b){ return a.ts - b.ts; })
+function textoDeTodas(){
+  return datos.slice().sort(function(a,b){ return a.ts - b.ts; })
     .map(function(r){
       return iso(r.ts)+"  "+r.tk+"  "+r.est
            + (r.nota ? "  — "+r.nota : "")
            + (r.img ? "  [gráfico]" : "");
     }).join("\n");
+}
+function prepararDlg(){
+  g("dlgTxt").value = textoDeTodas();
   g("dlgN").textContent = datos.length;
+}
+
+//  EL BOTON PRINCIPAL MANDA, NO ABRE NADA.
+//  Antes decia "Copiar todas" y abria un cuadro para copiar el texto y
+//  pegarmelo en el chat. Con el puente a Drive eso quedo al reves: lo normal
+//  es que se vaya solo, y copiar es el caso raro. Por eso Enviar manda de una
+//  y lo demas se fue detras del boton de los tres puntos.
+//
+//  Nunca se manda "solo lo nuevo": la app no lleva cuenta de que se mando ya,
+//  y llevarla seria una fuente de errores callados -- si se pierde esa marca,
+//  desaparecen anotaciones. Se manda TODO siempre y del otro lado se
+//  descartan las repetidas, que es la version que no puede perder nada.
+g("exportar").onclick = async function(){
+  if(!datos.length){ avisar("Todavía no has anotado nada.", false); return; }
+  prepararDlg();
+  if(!cfgLeer().url){
+    //  Sin puente configurado no hay a donde mandar: se abre el cuadro con
+    //  las otras formas, que es lo unico util que se puede ofrecer.
+    g("dlg").showModal();
+    g("cfg").style.display = "block";
+    g("cfgEstado").textContent = "Configura el envío automático para mandarlas de un toque.";
+    return;
+  }
+  var b = this, antes = b.textContent;
+  b.disabled = true; b.textContent = "Enviando…";
+  try{
+    var res = await mandarAlPuente(textoDeTodas());
+    if(res.ok) avisar("Enviadas " + datos.length
+                      + (datos.length === 1 ? " anotación." : " anotaciones."), true);
+    else avisar("No se pudo: " + (res.error || "?"), false);
+  }catch(e){
+    avisar("No se pudo enviar — revisa la señal.", false);
+  }
+  b.disabled = false; b.textContent = antes;
+};
+
+g("masOpc").onclick = function(){
+  if(!datos.length){ avisar("Todavía no has anotado nada.", false); return; }
+  prepararDlg();
   g("dlg").showModal();
 };
 // ---------------------------------------------------------- mandar a Drive
