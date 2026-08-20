@@ -432,7 +432,7 @@ svg{display:block;width:100%;height:auto;overflow:visible}
     <div id="grafAno"></div>
   </div>
   <div class="tarjeta" data-card="estacional">
-    <h2>Estacionalidad</h2>
+    <h2>Resultado por mes</h2>
     <p class="nota">El mismo mes de todos los años juntos: si enero se repite mal año
     tras año, aquí se ve. Clic en una barra para quedarte con ese mes.</p>
     <div id="grafEst"></div>
@@ -532,7 +532,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v85 · 19 ago 2026";
+var VERSION = "v86 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 //  Nombres completos para la lista de meses: el anio se elige arriba, asi
 //  que aqui basta con el mes y cabe escribirlo entero.
@@ -1417,7 +1417,7 @@ function grafEstacional(){
   var paso = iw/ks.length;
   var bw = Math.max(6, Math.min(34, paso - 6));
 
-  var s = '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Estacionalidad por mes">';
+  var s = '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Resultado por mes">';
   [max, (max+min)/2, min].forEach(function(v){
     var y = PT + ((max-v)/span)*ih;
     s += '<line class="rej" x1="'+PL+'" y1="'+y.toFixed(1)+'" x2="'+(W-PR)+'" y2="'+y.toFixed(1)+'"/>';
