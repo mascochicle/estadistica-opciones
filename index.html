@@ -520,7 +520,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v83 · 19 ago 2026";
+var VERSION = "v84 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 //  Nombres completos para la lista de meses: el anio se elige arriba, asi
 //  que aqui basta con el mes y cabe escribirlo entero.
@@ -729,11 +729,15 @@ function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCa
     //  abajo -- donde ademas viene con acierto, razon y resultado. Repetirlo
     //  en el boton alargaba las filas sin agregar nada.
     var valores = vals();
-    var todos = cuantos() === valores.length;
+    var hay = disponible ? disponible() : null;
+    //  "todos" quiere decir todos los que HAY. Medirlo contra la lista
+    //  completa lo dejaba apagado siempre que hubiera botones en gris, que
+    //  es casi siempre: los de otra cuenta nunca se prenden.
+    var base = (hay && hay.length) ? hay : valores;
+    var todos = base.every(function(v){ return F[campo][v]; });
     var cls = exclusivo ? "chip uno" : "chip";
     var btnTodos = '<button class="'+cls+' todos" type="button" aria-pressed="'+todos+'" data-todos="1">'
                  + '<span class="marca">'+(todos?"✓":"")+'</span>todos</button>';
-    var hay = disponible ? disponible() : null;
     var html = valores.map(function(v){
       var on = F[campo][v];
       //  "No hay" = ese valor no existe en la cuenta o el instrumento que
@@ -756,13 +760,19 @@ function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCa
         if(b.dataset.todos){
           //  En los combinables funciona en los dos sentidos; en los
           //  exclusivos solo enciende, porque cero no es un estado util ahi.
-          var prender = exclusivo || cuantos() !== valores.length;
+          var prender = exclusivo || !todos;
           vals().forEach(function(v){ F[campo][v] = prender; });
         } else if(exclusivo){
           var v = b.dataset.v;
           var solo = F[campo][v] && cuantos() === 1;
-          //  Volver a picar el que ya estaba solo regresa a "todos", para
-          //  poder deshacer sin ir a buscar el boton.
+          //  "fijo" = picar el que ya esta puesto no hace nada. En operativa
+          //  el paso natural es elegir instrumento arriba y una operativa
+          //  abajo; que la segunda picada regresara a "todos" obligaba a
+          //  volver a elegirla y apagar las otras a mano. Para ver todas
+          //  esta el boton de todas.
+          if(solo && exclusivo === "fijo") return;
+          //  En los demas, volver a picar el que estaba solo regresa a
+          //  "todos", para poder deshacer sin ir a buscar el boton.
           vals().forEach(function(x){ F[campo][x] = solo ? true : (x === v); });
         } else {
           F[campo][b.dataset.v] = !F[campo][b.dataset.v];
@@ -945,7 +955,7 @@ var pintaInst = botonera("chipsInst", "pistaInst", TODOS_INST, instDe, "inst", n
 
 //  Combinable y no exclusiva: hoy mismo Marco corre dos a la vez -- acciones
 //  swing y cripto -- y obligar a elegir una sola no dejaria ver eso.
-var pintaOper = botonera("chipsOper", null, TODAS_OPER, operDe, "oper", null, false,
+var pintaOper = botonera("chipsOper", null, TODAS_OPER, operDe, "oper", null, "fijo",
   function(){ pintaOper(); pintarEncabezado(); pintar(); }, true, VAL_OPER, saltarOper);
 
 //  Las dos cuentas se muestran SIEMPRE, aunque una este vacia.
