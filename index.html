@@ -237,6 +237,28 @@ button.info:focus-visible{outline:2px solid var(--acento);outline-offset:2px}
 .tarjeta .nota{display:none}
 .tarjeta.abierta .nota{display:block;margin-top:8px}
 
+/*  CALENDARIO DEL ANIO
+    Doce meses chiquitos, como el de Tradervue. Cada dia se pinta segun cerro
+    y la fuerza del color es cuanto peso, medido contra el mejor dia del anio
+    -- si no, un dia de $20 y otro de $2,000 se verian igual.  */
+.calbarra{display:flex;align-items:center;gap:10px;margin:0 0 12px}
+.calbarra button{width:26px;height:26px;border-radius:7px;cursor:pointer;
+  border:1px solid var(--linea2);background:var(--panel);color:var(--tinta2);
+  font:inherit;font-size:13px;line-height:1;padding:0}
+.calbarra button:hover:not(:disabled){border-color:var(--acento);color:var(--acento)}
+.calbarra button:disabled{opacity:.35;cursor:default}
+.calbarra .ano{font-size:15px;font-weight:660;min-width:52px;text-align:center}
+.calbarra .resu{font-size:12.5px;color:var(--tinta3);margin-left:auto}
+.cal{display:grid;grid-template-columns:repeat(auto-fill,minmax(152px,1fr));gap:15px}
+.cal .mes h3{font-size:11.5px;font-weight:660;margin:0 0 5px;color:var(--tinta2)}
+.cal .sem,.cal .dias{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+.cal .sem span{font-size:9px;color:var(--tinta3);text-align:center;font-weight:640}
+.cal .dia{aspect-ratio:1;display:grid;place-items:center;border-radius:4px;
+  font-size:9.5px;color:var(--tinta3)}
+.cal .dia.op{color:var(--tinta);font-weight:660;cursor:pointer}
+.cal .dia.op:hover{outline:1.5px solid var(--acento)}
+.cal .dia.sel{outline:2px solid var(--acento)}
+
 .botonera{background:var(--panel);border:1px solid var(--linea);border-radius:12px;
   padding:4px 13px;display:flex;flex-direction:column}
 .botonera .fila{display:flex;gap:11px;align-items:center;flex-wrap:wrap;padding:9px 0;
@@ -340,6 +362,8 @@ svg{display:block;width:100%;height:auto;overflow:visible}
   <nav class="indice" id="indice">
     <span class="etiq">Ir a</span>
     <a href="#rejGraf">Gráficas</a>
+    <a href="#rejHabitos">Hábitos</a>
+    <a href="#rejCal">Calendario</a>
     <a href="#rejTablas">Tablas</a>
     <a href="#cardOps">Operaciones</a>
   </nav>
@@ -403,6 +427,39 @@ svg{display:block;width:100%;height:auto;overflow:visible}
   </div>
 </div>
 
+<p class="divisor">Hábitos</p>
+<div class="rejilla" id="rejHabitos">
+  <div class="tarjeta" data-card="retencion">
+    <h2>Cuánto aguantas cada una</h2>
+    <p class="nota">Los días que sostienes una posición ganadora contra los que sostienes
+    una perdedora. Si las perdedoras duran más, ahí está el error: cortar lo que sube y
+    aguantar lo que baja.</p>
+    <div id="grafRet"></div>
+  </div>
+  <div class="tarjeta" data-card="distrib">
+    <h2>Distribución de resultados</h2>
+    <p class="nota">Cuántas operaciones caen en cada rango de dinero. Abajo, cuánto pesan
+    las mejores: si el resultado depende de dos o tres, no es una estrategia todavía.</p>
+    <div id="grafDist"></div>
+  </div>
+  <div class="tarjeta" data-card="dias">
+    <h2>Días en verde contra días en rojo</h2>
+    <p class="nota">El mismo resultado medido por día y no por operación, que es como se
+    cobra un sueldo. Un día cuenta si cerraste algo ese día.</p>
+    <div id="grafDias"></div>
+  </div>
+</div>
+
+<p class="divisor">Calendario</p>
+<div class="rejilla ancho" id="rejCal">
+  <div class="tarjeta" data-card="calendario">
+    <h2>Calendario</h2>
+    <p class="nota">Cada día del año pintado según cerró: verde ganó, rojo perdió, y más
+    fuerte mientras más pesa. Clic en un día para quedarte con ese día.</p>
+    <div id="grafCal"></div>
+  </div>
+</div>
+
 <p class="divisor">Tablas</p>
 <div class="rejilla" id="rejTablas">
   <div class="tarjeta soloOpciones" id="cardCP" data-card="callput">
@@ -445,7 +502,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v79 · 19 ago 2026";
+var VERSION = "v80 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 //  Nombres completos para la lista de meses: el anio se elige arriba, asi
 //  que aqui basta con el mes y cabe escribirlo entero.
@@ -522,7 +579,7 @@ var instDe = function(o){ return o["in"] || "Opciones"; };
 //  Los tres cortes que mas se comparan van como botones y no como listas:
 //  se pueden encender varios a la vez, o apagar los que estorben. Cada fila
 //  guarda el conjunto de los ENCENDIDOS; con todos encendidos no filtra.
-var F = {cuenta:"IBKR", inst:null, anos:null, cp:"", etapa:"", plazo:"", est:"", tk:"", mes:"", cierre:""};
+var F = {cuenta:"IBKR", inst:null, anos:null, cp:"", etapa:"", plazo:"", est:"", tk:"", mes:"", cierre:"", dia:""};
 if(CUENTAS.indexOf(F.cuenta) < 0) F.cuenta = CUENTAS[0] || "IBKR";
 
 //  Todo lo demas se cuenta y se filtra DENTRO de la cuenta elegida, para
@@ -564,6 +621,7 @@ function pasa(o){
   if(F.tk      && o.t !== F.tk) return false;
   if(F.anos    && !F.anos[o.f.slice(0,4)]) return false;
   if(F.mes     && o.f.slice(5,7) !== F.mes) return false;
+  if(F.dia     && o.f !== F.dia) return false;
   if(F.cierre === "x" && !o.x) return false;
   if(F.cierre === "v" && o.x) return false;
   return true;
@@ -714,7 +772,7 @@ var pintaInst = botonera("chipsInst", "pistaInst", VAL_INST, instDe, "inst", nul
   function(){
     //  Las etapas y los Call/Put de un instrumento no existen en el otro.
     //  Arrastrarlos deja la pantalla vacia sin decir por que.
-        F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = ""; F.etapa = ""; F.cp = "";
+        F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = ""; F.etapa = ""; F.cp = ""; F.dia = "";
     reiniciar("anos", VAL_ANOS);
  ajustarMeses();
     pintarBotoneras(); pintarEncabezado(); pintar();
@@ -779,7 +837,7 @@ function pintaCuenta(){
       //  Ademas VAL_PERIODO y VAL_ANOS se calculan sobre deCuenta(), que ya
       //  mira el instrumento, asi que tienen que correr despues de este.
       instPorDefecto();
-              F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = ""; F.etapa = ""; F.cp = "";
+              F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = ""; F.etapa = ""; F.cp = ""; F.dia = "";
       reiniciar("anos", VAL_ANOS);
  ajustarMeses();
       pintarBotoneras(); pintarEncabezado(); pintar();
@@ -802,7 +860,7 @@ g("limpiar").onclick = function(){
   //  Limpia FILTROS. No toca cuenta ni instrumento: esos dos son el
   //  contexto, no un filtro. Antes esto devolvia al arranque y te sacaba
   //  del instrumento que estabas viendo, que no es limpiar sino mudarte.
-  F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = ""; F.etapa = ""; F.cp = "";
+  F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = ""; F.etapa = ""; F.cp = ""; F.dia = "";
   reiniciar("anos", VAL_ANOS);
         pintarBotoneras();
   ajustarMeses();
@@ -1249,6 +1307,269 @@ function grafPlazo(){
   });
 }
 
+
+// =====================================================================
+//  LAS CUATRO QUE FALTABAN
+//  Salieron de mirar Tradervue: son las que contestan "como opero", no
+//  "cuanto llevo". Van en su propio bloque por eso.
+// =====================================================================
+
+var mediana = function(a){
+  if(!a.length) return 0;
+  var s = a.slice().sort(function(x,y){ return x-y; });
+  var m = Math.floor(s.length/2);
+  return s.length % 2 ? s[m] : (s[m-1] + s[m]) / 2;
+};
+var promedio = function(a){
+  return a.length ? a.reduce(function(s,x){ return s+x; }, 0) / a.length : 0;
+};
+//  Renglon con barra, del mismo corte que el de vendidas contra expiradas.
+function renglon(nom, sub, valor, ancho, bueno){
+  return '<div style="margin-bottom:11px">'
+    + '<div style="display:flex;justify-content:space-between;font-size:12.5px;margin-bottom:3px">'
+    + '<span>' + nom + ' <span class="mut">' + sub + '</span></span>'
+    + '<span class="' + (bueno ? "pos" : "neg") + '" style="font-weight:640">' + valor + '</span></div>'
+    + '<div style="height:9px;background:var(--hundido);border-radius:4px;overflow:hidden">'
+    + '<div style="height:100%;width:' + ancho.toFixed(1) + '%;border-radius:4px;background:'
+    + (bueno ? "var(--gana)" : "var(--pierde)") + '"></div></div></div>';
+}
+
+// -------------------------------------------------- cuanto aguantas cada una
+//  La medicion directa del error de cortar ganadoras y aguantar perdedoras.
+//  Se enseña el promedio Y la mediana: el promedio se lo lleva una sola
+//  posicion de tres años, la mediana dice como es el dia a dia.
+function grafRet(){
+  var v = vis().filter(function(o){ return o.pl != null; });
+  var gan = v.filter(function(o){ return o.g > 0; }).map(function(o){ return o.pl; });
+  var per = v.filter(function(o){ return o.g < 0; }).map(function(o){ return o.pl; });
+  if(!gan.length && !per.length){
+    g("grafRet").innerHTML = '<p class="vacio">Nada con estos filtros.</p>'; return;
+  }
+  var pg = promedio(gan), pp = promedio(per);
+  var mg = mediana(gan),  mp = mediana(per);
+  var tope = Math.max(pg, pp, 1);
+  var dias = function(n){ return n.toFixed(n < 10 ? 1 : 0) + (n === 1 ? " día" : " días"); };
+
+  var s = renglon("Ganadoras", gan.length + " ops · mediana " + dias(mg),
+                  dias(pg), pg/tope*100, true)
+        + renglon("Perdedoras", per.length + " ops · mediana " + dias(mp),
+                  dias(pp), pp/tope*100, false);
+
+  //  El veredicto en una linea: es lo unico que de verdad se busca aqui.
+  var txt;
+  if(!gan.length || !per.length) txt = "Falta uno de los dos lados para comparar.";
+  else if(pp > pg * 1.15) txt = "Aguantas las perdedoras <b>" + (pp/pg).toFixed(1)
+       + "× más</b> que las ganadoras.";
+  else if(pg > pp * 1.15) txt = "Dejas correr las ganadoras <b>" + (pg/pp).toFixed(1)
+       + "× más</b> que las perdedoras.";
+  else txt = "Las sostienes casi el mismo tiempo.";
+  s += '<p class="nota" style="display:block;margin:12px 0 0">' + txt + '</p>';
+  g("grafRet").innerHTML = s;
+}
+
+// ---------------------------------------------- distribucion de resultados
+function grafDist(){
+  var v = vis();
+  if(!v.length){ g("grafDist").innerHTML = '<p class="vacio">Nada con estos filtros.</p>'; return; }
+  var gs = v.map(function(o){ return o.g; }).sort(function(a,b){ return a-b; });
+
+  //  El rango se saca de los percentiles y no del maximo: una sola operacion
+  //  de $30,000 aplastaria las demas en una sola columna. Lo que se salga se
+  //  junta en las cubetas de las orillas, que por eso llevan flecha.
+  var q = function(p){ return gs[Math.min(gs.length-1, Math.max(0, Math.round(p*(gs.length-1))))]; };
+  var lim = Math.max(Math.abs(q(.02)), Math.abs(q(.98)), 10);
+  var N = 14, paso = lim*2/N;                 // simetrico: el cero es un borde
+  var cubos = [], i;
+  for(i = 0; i < N+2; i++) cubos.push(0);
+  gs.forEach(function(x){
+    if(x < -lim){ cubos[0]++; return; }
+    if(x >  lim){ cubos[N+1]++; return; }
+    var k = Math.floor((x + lim) / paso);
+    cubos[Math.min(N-1, Math.max(0, k)) + 1]++;
+  });
+
+  var W = anchoSVG("grafDist"), H = 210, PL = 34, PR = 8, PT = 14, PB = 34;
+  var iw = W-PL-PR, ih = H-PT-PB;
+  var maxN = Math.max.apply(null, cubos);
+  var pasoX = iw/cubos.length, bw = Math.max(6, pasoX - 3);
+
+  var s = '<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="Distribución de resultados">';
+  [maxN, Math.round(maxN/2)].forEach(function(n){
+    var y = PT + (1 - n/maxN)*ih;
+    s += '<line class="rej" x1="'+PL+'" y1="'+y.toFixed(1)+'" x2="'+(W-PR)+'" y2="'+y.toFixed(1)+'"/>'
+       + '<text class="eje" x="'+(PL-6)+'" y="'+(y+3).toFixed(1)+'" text-anchor="end">'+n+'</text>';
+  });
+  cubos.forEach(function(n, k){
+    var alto = maxN ? n/maxN*ih : 0;
+    var x = PL + k*pasoX + (pasoX-bw)/2;
+    var y = PT + ih - alto;
+    //  El centro de la cubeta decide el color: a la izquierda del cero son
+    //  perdidas y a la derecha ganancias.
+    var centro = k === 0 ? -lim-paso : k === N+1 ? lim+paso : -lim + (k-1)*paso + paso/2;
+    var col = centro >= 0 ? "var(--gana)" : "var(--pierde)";
+    var desde = k === 0 ? null : k === N+1 ? lim : -lim + (k-1)*paso;
+    var rot = k === 0 ? "‹ "+corto(-lim) : k === N+1 ? corto(lim)+" ›" : null;
+    s += '<g class="barmes" data-k="'+k+'" tabindex="0">'
+       + '<rect x="'+(PL+k*pasoX).toFixed(1)+'" y="'+PT+'" width="'+pasoX.toFixed(1)+'" height="'+ih+'" fill="transparent"/>'
+       + '<rect x="'+x.toFixed(1)+'" y="'+y.toFixed(1)+'" width="'+bw.toFixed(1)+'" height="'
+       + Math.max(alto, n ? 1.5 : 0).toFixed(1) + '" rx="2" fill="'+col+'"/>'
+       + '</g>';
+    if(rot) s += '<text class="eje" x="'+(PL+k*pasoX+pasoX/2).toFixed(1)+'" y="'+(H-19)+
+                 '" text-anchor="middle">'+rot+'</text>';
+  });
+  //  La linea del cero, que es lo que se viene a ver: cuanto cae de cada lado.
+  var x0 = PL + (1 + N/2)*pasoX - pasoX/2 + pasoX/2;
+  x0 = PL + (N/2 + 1)*pasoX;
+  s += '<line class="cero" x1="'+x0.toFixed(1)+'" y1="'+PT+'" x2="'+x0.toFixed(1)+'" y2="'+(PT+ih)+'"/>'
+     + '<text class="eje" x="'+x0.toFixed(1)+'" y="'+(H-6)+'" text-anchor="middle">$0</text>';
+  s += '</svg>';
+
+  //  Cuanto pesan las mejores. La pregunta no es cuanto ganaste sino si lo
+  //  ganaste muchas veces o dos.
+  var tot = gs.reduce(function(a,x){ return a+x; }, 0);
+  var alt = gs.slice(-10).reduce(function(a,x){ return a+x; }, 0);
+  var baj = gs.slice(0, 10).reduce(function(a,x){ return a+x; }, 0);
+  var sin5 = tot - gs.slice(-5).reduce(function(a,x){ return a+x; }, 0);
+  var linea = function(t, val, cls){
+    return '<div style="display:flex;justify-content:space-between;font-size:12.5px;padding:5px 0;'
+      + 'border-top:1px solid var(--linea)"><span>'+t+'</span>'
+      + '<span class="'+cls+'" style="font-weight:640">'+usd(val)+'</span></div>';
+  };
+  s += '<div style="margin-top:10px">'
+     + linea("Las 10 mejores suman", alt, alt>=0?"pos":"neg")
+     + linea("Las 10 peores suman", baj, baj>=0?"pos":"neg")
+     + linea("Sin las 5 mejores quedarías en", sin5, sin5>=0?"pos":"neg")
+     + '</div>';
+  g("grafDist").innerHTML = s;
+
+  Array.prototype.forEach.call(g("grafDist").querySelectorAll(".barmes"), function(el){
+    var k = +el.dataset.k, n = cubos[k];
+    var rango = k === 0 ? "menos de "+usd(-lim)
+              : k === N+1 ? "más de "+usd(lim)
+              : usd(-lim + (k-1)*paso) + " a " + usd(-lim + k*paso);
+    el.addEventListener("mousemove", function(e){
+      verTip(e, "<b>"+rango+"</b><br>"+n+(n===1?" operación":" operaciones"));
+    });
+    el.addEventListener("mouseleave", ocultaTip);
+  });
+}
+
+// ------------------------------------------ dias en verde contra dias en rojo
+function grafDias(){
+  var v = vis();
+  var m = {};
+  v.forEach(function(o){ m[o.f] = (m[o.f] || 0) + o.g; });
+  var ds = Object.keys(m);
+  if(!ds.length){ g("grafDias").innerHTML = '<p class="vacio">Nada con estos filtros.</p>'; return; }
+  var ver = ds.filter(function(d){ return m[d] > 0; });
+  var roj = ds.filter(function(d){ return m[d] < 0; });
+  var sv = ver.reduce(function(a,d){ return a+m[d]; }, 0);
+  var sr = roj.reduce(function(a,d){ return a+m[d]; }, 0);
+  var tope = Math.max(Math.abs(sv), Math.abs(sr), 1);
+  var pctV = ds.length ? Math.round(ver.length/ds.length*100) : 0;
+
+  var s = renglon("Días en verde", ver.length + " de " + ds.length + " · " + pctV + "%",
+                  usd(sv), Math.abs(sv)/tope*100, true)
+        + renglon("Días en rojo", roj.length + " de " + ds.length + " · " + (100-pctV) + "%",
+                  usd(sr), Math.abs(sr)/tope*100, false);
+
+  var pv = ver.length ? sv/ver.length : 0, pr = roj.length ? sr/roj.length : 0;
+  var mejor = ds.reduce(function(a,d){ return m[d] > m[a] ? d : a; }, ds[0]);
+  var peor  = ds.reduce(function(a,d){ return m[d] < m[a] ? d : a; }, ds[0]);
+  s += '<p class="nota" style="display:block;margin:12px 0 0">'
+     + 'Día verde promedio <b class="pos">' + usd(pv) + '</b> · día rojo promedio '
+     + '<b class="neg">' + usd(pr) + '</b>.<br>'
+     + 'El mejor fue el ' + mejor + ' con ' + usd(m[mejor])
+     + ' y el peor el ' + peor + ' con ' + usd(m[peor]) + '.</p>';
+  g("grafDias").innerHTML = s;
+}
+
+// ------------------------------------------------------------- calendario
+var anoCal = null;
+function grafCal(){
+  //  Ignora su propio filtro -- si no, quedaria un solo dia pintado -- pero
+  //  respeta los demas.
+  var base = C.filter(function(o){
+    var d = F.dia; F.dia = ""; var r = pasa(o); F.dia = d; return r;
+  });
+  var anos = uniq(base.map(function(o){ return o.f.slice(0,4); })).sort();
+  if(!anos.length){ g("grafCal").innerHTML = '<p class="vacio">Nada con estos filtros.</p>'; return; }
+  if(anos.indexOf(anoCal) < 0) anoCal = anos[anos.length-1];
+
+  var m = {}, nOps = {}, total = 0;
+  base.forEach(function(o){
+    if(o.f.slice(0,4) !== anoCal) return;
+    m[o.f] = (m[o.f] || 0) + o.g;
+    nOps[o.f] = (nOps[o.f] || 0) + 1;
+    total += o.g;
+  });
+  var tope = 1;
+  Object.keys(m).forEach(function(d){ tope = Math.max(tope, Math.abs(m[d])); });
+
+  var i = anos.indexOf(anoCal);
+  var s = '<div class="calbarra">'
+    + '<button type="button" id="calAnt"' + (i <= 0 ? " disabled" : "") + ' aria-label="Año anterior">‹</button>'
+    + '<span class="ano">' + anoCal + '</span>'
+    + '<button type="button" id="calSig"' + (i >= anos.length-1 ? " disabled" : "") + ' aria-label="Año siguiente">›</button>'
+    + '<span class="resu">' + Object.keys(m).length + ' días operados · '
+    + '<b class="' + (total>=0?"pos":"neg") + '">' + usd(total) + '</b></span></div>';
+
+  var MES12 = ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto",
+               "Septiembre","Octubre","Noviembre","Diciembre"];
+  s += '<div class="cal">';
+  for(var mes = 1; mes <= 12; mes++){
+    s += '<div class="mes"><h3>' + MES12[mes-1] + '</h3>'
+       + '<div class="sem"><span>L</span><span>M</span><span>X</span><span>J</span>'
+       + '<span>V</span><span>S</span><span>D</span></div><div class="dias">';
+    //  getDay da 0 en domingo; aqui la semana empieza en lunes.
+    var primero = (new Date(+anoCal, mes-1, 1).getDay() + 6) % 7;
+    var cuantos = new Date(+anoCal, mes, 0).getDate();
+    for(var k = 0; k < primero; k++) s += '<span class="dia"></span>';
+    for(var d = 1; d <= cuantos; d++){
+      var iso = anoCal + "-" + (mes<10?"0":"") + mes + "-" + (d<10?"0":"") + d;
+      var val = m[iso];
+      var est = "dia", fondo = "";
+      if(val !== undefined){
+        est += " op" + (F.dia === iso ? " sel" : "");
+        //  La fuerza del color es cuanto peso ese dia contra el mejor del
+        //  anio, con un piso para que un dia chico no salga invisible.
+        var f = .18 + .82 * Math.min(1, Math.abs(val)/tope);
+        fondo = ';background:color-mix(in srgb, var(--' + (val>=0?"gana":"pierde")
+              + ') ' + Math.round(f*100) + '%, transparent)';
+        if(f > .55) fondo += ';color:#fff';
+      }
+      s += '<span class="' + est + '" data-d="' + iso + '" style="min-width:0' + fondo + '">' + d + '</span>';
+    }
+    s += '</div></div>';
+  }
+  s += '</div>';
+  g("grafCal").innerHTML = s;
+
+  var ir = function(paso){
+    return function(){
+      var k = anos.indexOf(anoCal) + paso;
+      if(k < 0 || k >= anos.length) return;
+      anoCal = anos[k];
+      grafCal();
+    };
+  };
+  g("calAnt").onclick = ir(-1);
+  g("calSig").onclick = ir(1);
+
+  Array.prototype.forEach.call(g("grafCal").querySelectorAll(".dia.op"), function(el){
+    var iso = el.dataset.d;
+    el.addEventListener("mousemove", function(e){
+      verTip(e, "<b>"+iso+"</b><br>"+usd(m[iso])+"<br>"+nOps[iso]
+                +(nOps[iso]===1?" cierre":" cierres"));
+    });
+    el.addEventListener("mouseleave", ocultaTip);
+    el.addEventListener("click", function(){
+      F.dia = (F.dia === iso) ? "" : iso;
+      ocultaTip(); pintar();
+    });
+  });
+}
+
 // ---------------------------------------------------------------- por subyacente
 function grafTk(){
   //  Ignora el filtro de subyacente (si no quedaria una sola barra) pero
@@ -1466,14 +1787,69 @@ function grafCierre(){
 }
 
 // ---------------------------------------------------------------- operaciones
-var COPS = [{k:"f",t:"Fecha",izq:1},{k:"t",t:"Ticker",izq:1},{k:"cp",t:"C/P"},
-            {k:"k",t:"Strike"},{k:"v",t:"Vence",izq:1},{k:"pl",t:"Plazo"},
-            {k:"q",t:"Cont"},{k:"p",t:"Prima"},{k:"g",t:"Resultado"},
-            {k:"x",t:"Cierre",izq:1},{k:"e",t:"Estrategia",izq:1}];
+//  LAS COLUMNAS SE ARMAN SEGUN LO QUE SE ESTA VIENDO
+//  Eran fijas y de opciones. Con cripto salia "null" en strike, la casilla
+//  de call/put vacia y "vendida" en el cierre de un bitcoin, que no vence
+//  nunca. Una columna que no aplica no es un hueco: es un dato falso.
+//
+//  Ojo con "v": en opciones es el VENCIMIENTO y en acciones y cripto es la
+//  fecha de compra. Es el mismo campo con dos significados, asi que el
+//  rotulo tiene que cambiar con el.
+function colsOps(){
+  var op = hayOpciones();
+  //  Mezclado: hay opciones Y hay algo que no lo es. Pasa al ver "todas" o
+  //  dos instrumentos juntos, y entonces ningun rotulo de los dos sirve solo.
+  var mixto = op && vis().some(function(o){ return instDe(o) !== "Opciones"; });
+  var c = [{k:"f",t:"Fecha",izq:1},{k:"t",t:"Ticker",izq:1}];
+  if(op) c.push({k:"cp",t:"C/P"}, {k:"k",t:"Strike"},
+                {k:"v",t:mixto ? "Vence o compra" : "Vence", izq:1});
+  else   c.push({k:"v",t:"Compra",izq:1});
+  c.push({k:"pl",t:"Plazo"},
+         {k:"q",t:op && !mixto ? "Cont" : "Cantidad"},
+         {k:"p",t:op && !mixto ? "Prima" : "Precio"},
+         {k:"g",t:"Resultado"});
+  if(op) c.push({k:"x",t:"Cierre",izq:1});
+  c.push({k:"e",t:"Estrategia",izq:1});
+  //  Siempre, aunque solo se este viendo una cuenta: al mirar "todas" es lo
+  //  unico que dice de donde salio cada renglon.
+  c.push({k:"cu",t:"Cuenta",izq:1});
+  return c;
+}
+
+//  Un numero de cripto no se escribe como uno de bolsa: 0.00043 BTC con dos
+//  decimales es 0.00, y un precio de $0.000012 tambien.
+var numCorto = function(n){ return parseFloat(Number(n).toFixed(6)); };
+var precioTxt = function(n){
+  n = Number(n);
+  return "$" + (Math.abs(n) < 1 && n !== 0 ? numCorto(n) : n.toFixed(2));
+};
+
+var CELDA = {
+  f:  function(t){ return '<td class="izq mut">'+t.f+'</td>'; },
+  t:  function(t){ return '<td class="izq" style="font-weight:640">'+t.t+'</td>'; },
+  cp: function(t){ return '<td>'+(t.cp||"—")+'</td>'; },
+  k:  function(t){ return '<td class="mut">'+(t.k==null?"—":t.k)+'</td>'; },
+  v:  function(t){ return '<td class="izq mut">'+(t.v||"—")+'</td>'; },
+  pl: function(t){ return '<td>'+(t.pl==null?"—":t.pl+"d")+'</td>'; },
+  q:  function(t){ return '<td>'+numCorto(t.q)+'</td>'; },
+  p:  function(t){ return '<td class="mut">'+precioTxt(t.p)+'</td>'; },
+  g:  function(t){ return '<td class="'+(t.g>=0?"pos":"neg")+'">'+usd(t.g)+'</td>'; },
+  //  Una accion no expira: la etiqueta "vendida" ahi no informa, insinua que
+  //  pudo haber expirado.
+  x:  function(t){ return instDe(t) !== "Opciones" ? '<td class="izq mut">—</td>'
+                          : '<td class="izq"><span class="pill '+(t.x?"exp":"ven")+'">'
+                          +(t.x?"expiró":"vendida")+'</span></td>'; },
+  e:  function(t){ return '<td class="izq'+(t.e?"":" mut")+'">'+(t.e||"sin etiqueta")+'</td>'; },
+  cu: function(t){ return '<td class="izq mut">'+cuentaDe(t)+'</td>'; }
+};
 
 function tablaOps(){
   var o = ORD.ops;
-  g("hOps").innerHTML = COPS.map(function(c){
+  var COLS = colsOps();
+  //  Se venia ordenando por una columna que ya no esta -- por strike y luego
+  //  cambias a cripto -- y la tabla quedaba ordenada por algo invisible.
+  if(!COLS.some(function(c){ return c.k === o.k; })){ o.k = "f"; o.d = -1; }
+  g("hOps").innerHTML = COLS.map(function(c){
     return '<th data-k="'+c.k+'" class="'+(c.izq?"izq ":"")+(o.k===c.k?"activa":"")+'">'+c.t+
            (o.k===c.k?(o.d<0?" ↓":" ↑"):"")+'</th>';
   }).join("");
@@ -1499,21 +1875,14 @@ function tablaOps(){
   var muestra = recortado ? arr.slice(0, TOPE) : arr;
   g("cuenta").textContent = "— " + arr.length + " de " + deCuenta().length
     + (recortado ? " · se listan las primeras " + TOPE : "");
+  var n = COLS.length;
   g("bOps").innerHTML = arr.length ? muestra.map(function(t){
-    return '<tr>'
-      + '<td class="izq mut">'+t.f+'</td>'
-      + '<td class="izq" style="font-weight:640">'+t.t+'</td>'
-      + '<td>'+t.cp+'</td><td class="mut">'+t.k+'</td>'
-      + '<td class="izq mut">'+t.v+'</td><td>'+(t.pl==null?"—":t.pl+"d")+'</td>'
-      + '<td>'+t.q+'</td><td class="mut">$'+Number(t.p).toFixed(2)+'</td>'
-      + '<td class="'+(t.g>=0?"pos":"neg")+'">'+usd(t.g)+'</td>'
-      + '<td class="izq"><span class="pill '+(t.x?"exp":"ven")+'">'+(t.x?"expiró":"vendida")+'</span></td>'
-      + '<td class="izq'+(t.e?"":" mut")+'">'+(t.e||"sin etiqueta")+'</td></tr>';
+    return '<tr>' + COLS.map(function(c){ return CELDA[c.k](t); }).join("") + '</tr>';
   }).join("") + (recortado
-      ? '<tr><td colspan="11" class="vacio">Faltan ' + (arr.length - TOPE)
+      ? '<tr><td colspan="'+n+'" class="vacio">Faltan ' + (arr.length - TOPE)
         + ' operaciones. Acota con los filtros de arriba para verlas.</td></tr>'
       : '')
-    : '<tr><td colspan="11" class="vacio">Nada con estos filtros.</td></tr>';
+    : '<tr><td colspan="'+n+'" class="vacio">Nada con estos filtros.</td></tr>';
 }
 
 // ---------------------------------------------------------------- pintar todo
@@ -1551,7 +1920,7 @@ function hayFiltros(){
   //  Cuenta e instrumento NO entran: son el contexto de lo que se mira, y
   //  la X no los toca. Si contaran, la X saldria encendida por estar viendo
   //  opciones y al picarla no pasaria nada visible.
-  if(F.plazo || F.est || F.tk || F.mes || F.cierre || F.etapa || F.cp) return true;
+  if(F.plazo || F.est || F.tk || F.mes || F.cierre || F.etapa || F.cp || F.dia) return true;
   return VAL_ANOS().some(function(x){ return !F.anos[x]; });
 }
 
@@ -1589,6 +1958,10 @@ function pintar(){
   grafEstacional();
   grafPlazo();
   grafTk();
+  grafRet();
+  grafDist();
+  grafDias();
+  grafCal();
   var op = hayOpciones();
   if(op) grafEstrat();
   if(op){
