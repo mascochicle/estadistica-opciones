@@ -273,6 +273,14 @@ button.info:focus-visible{outline:2px solid var(--acento);outline-offset:2px}
 .botonera .etiq{font-size:11px;color:var(--tinta3);text-transform:uppercase;letter-spacing:.05em;
   font-weight:640;min-width:58px}
 .chip.todos{border-style:dashed}
+/*  BOTON EN GRIS: existe, pero no en lo que estas viendo ahora.
+    Antes se escondia. Esconderlo hacia creer que la opcion no existia, y
+    ademas quitaba el camino corto: picar "Cripto swing" estando en IBKR
+    ahora te lleva a Binance solo, sin tener que adivinar en que cuenta
+    vivia. Por eso NO va deshabilitado: se ve apagado pero si responde.  */
+.chip.nohay{opacity:.42;font-weight:400}
+.chip.nohay .marca{opacity:.35}
+.chip.nohay:hover{opacity:1;border-color:var(--acento);color:var(--acento)}
 .chip.uno .marca{border-radius:50%}
 .chips{display:flex;gap:7px;flex-wrap:wrap}
 .chip{font:inherit;font-size:12.5px;padding:5px 12px;border-radius:999px;cursor:pointer;
@@ -512,7 +520,7 @@ const D={"c":[{"f":"2026-07-27","h":"10:07","t":"CDNA","cp":"","k":null,"v":"202
 var C = D.c, A = D.a;
 //  Se sella al generar el archivo, no en el navegador: asi la version
 //  dice de que corte de datos viene la pagina, no cuando se abrio.
-var VERSION = "v82 · 19 ago 2026";
+var VERSION = "v83 · 19 ago 2026";
 var MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 //  Nombres completos para la lista de meses: el anio se elige arriba, asi
 //  que aqui basta con el mes y cabe escribirlo entero.
@@ -593,6 +601,14 @@ function operDe(o){
 //  Solo las operativas que existen en lo que se esta viendo. Se mide contra
 //  cuenta e instrumento -- los dos cortes de arriba -- para que no queden
 //  botones que dejarian la pantalla vacia.
+function TODAS_OPER(){
+  var hay = {};
+  C.forEach(function(o){ hay[operDe(o)] = 1; });
+  var orden = OPERATIVAS.filter(function(v){ return hay[v]; });
+  Object.keys(hay).forEach(function(v){ if(orden.indexOf(v) < 0) orden.push(v); });
+  return orden;
+}
+
 function VAL_OPER(){
   var hay = {};
   C.forEach(function(o){
@@ -696,7 +712,7 @@ var vis = function(){ return C.filter(pasa); };
 //  exclusivo = los valores no se pueden combinar: o todos, o uno solo.
 //  Es el caso del periodo: son etapas distintas de la cuenta y juntar dos
 //  no responde ninguna pregunta.
-function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCambiar, todosAlFinal){
+function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCambiar, todosAlFinal, disponible, saltar){
   //  `valores` puede ser un arreglo fijo o una funcion. Lo segundo hace
   //  falta en el periodo: al cambiar de cuenta las etapas son otras, y
   //  dejar botones de la cuenta que no estas viendo, todos en cero, es
@@ -717,10 +733,17 @@ function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCa
     var cls = exclusivo ? "chip uno" : "chip";
     var btnTodos = '<button class="'+cls+' todos" type="button" aria-pressed="'+todos+'" data-todos="1">'
                  + '<span class="marca">'+(todos?"✓":"")+'</span>todos</button>';
+    var hay = disponible ? disponible() : null;
     var html = valores.map(function(v){
       var on = F[campo][v];
-      return '<button class="'+cls+'" type="button" aria-pressed="'+on+'" data-v="'+v+'">'
-           + '<span class="marca">'+(on?"✓":"")+'</span>'+(rotulo?rotulo(v):v)
+      //  "No hay" = ese valor no existe en la cuenta o el instrumento que
+      //  estas viendo. Se pinta igual, en gris, y al picarlo se muda el
+      //  contexto en vez de no hacer nada.
+      var falta = hay && hay.indexOf(v) < 0;
+      return '<button class="'+cls+(falta?" nohay":"")+'" type="button" aria-pressed="'
+           + (falta ? false : on) + '" data-v="'+v+'"'
+           + (falta ? ' title="No hay en lo que estás viendo — clic para ir a donde sí"' : '')
+           + '><span class="marca">'+(falta||!on?"":"✓")+'</span>'+(rotulo?rotulo(v):v)
            + '</button>';
     }).join("");
     //  "todos" al final donde Marco lo pidio asi (cuenta e instrumento);
@@ -729,6 +752,7 @@ function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCa
 
     Array.prototype.forEach.call(g(destino).querySelectorAll(".chip"), function(b){
       b.onclick = function(){
+        if(b.classList.contains("nohay")){ if(saltar) saltar(b.dataset.v); return; }
         if(b.dataset.todos){
           //  En los combinables funciona en los dos sentidos; en los
           //  exclusivos solo enciende, porque cero no es un estado util ahi.
@@ -765,6 +789,7 @@ function botonera(destino, pista, valores, clave, campo, rotulo, exclusivo, alCa
     //  de abajo (.fila) y otras en el encabezado (.cuentabox).
     var fila = g(destino).closest ? g(destino).closest(".fila, .cuentabox, .rgrupo") : null;
     if(fila) fila.style.display = valores.length ? "" : "none";
+
   }
   return repintar;
 }
@@ -790,6 +815,15 @@ function VAL_ANOS(){
   //  instrumento elegidos. De mas viejo a mas nuevo.
   return uniq(deCuenta().map(function(o){ return o.f.slice(0,4); }));
 }
+//  TODOS los instrumentos que hay en los datos, sin importar la cuenta.
+//  Es lo que se PINTA; VAL_INST es lo que esta disponible ahora mismo y
+//  decide cual se pinta en gris.
+function TODOS_INST(){
+  return INSTRUMENTOS.filter(function(v){
+    return C.some(function(o){ return instDe(o) === v; });
+  });
+}
+
 function VAL_INST(){
   //  Solo los instrumentos que existen EN LA CUENTA elegida. IBKR no tiene
   //  cripto y Binance no tiene opciones: mostrarlos en cero es un boton
@@ -814,12 +848,16 @@ var CP_ROTULO = function(v){ return v === "C" ? "Call" : "Put"; };
 var INST_PREFERIDO = "Acciones";
 function instPorDefecto(){
   var v = VAL_INST();
-  reiniciar("inst", v);
+  //  Se prenden TODOS los que existen en los datos, no solo los de esta
+  //  cuenta: los que no aplican no aportan filas y ademas se ven en gris,
+  //  asi que dejarlos encendidos no cambia nada y evita que al mudarse de
+  //  cuenta el instrumento nuevo llegue apagado.
+  reiniciar("inst", TODOS_INST);
   //  Con "todas" las cuentas puestas, NO se aplica el instrumento preferido:
   //  pedir todas las cuentas y recibir solo acciones es lo contrario de lo
   //  que uno pide. Solo hay preferencia cuando se mira una cuenta sola.
   if(F.cuenta !== TODAS && v.indexOf(INST_PREFERIDO) >= 0){
-    v.forEach(function(x){ F.inst[x] = (x === INST_PREFERIDO); });
+    TODOS_INST().forEach(function(x){ F.inst[x] = (x === INST_PREFERIDO); });
   }
 }
 
@@ -833,12 +871,67 @@ instPorDefecto();
 reiniciar("oper",    VAL_OPER);
 reiniciar("anos",    VAL_ANOS);
 
+//  MUDARSE DE CONTEXTO
+//  Cambiar de cuenta, de instrumento o de operativa deja sin sentido los
+//  filtros de abajo: una estrategia de opciones no existe en cripto, y un
+//  ticker de IBKR no esta en Binance. Se sueltan todos y se recalculan las
+//  listas. El orden importa y esta explicado en el arranque: la operativa
+//  ANTES que los anios.
+function mudarContexto(ajuste){
+  F.plazo = ""; F.est = ""; F.tk = ""; F.mes = ""; F.cierre = ""; F.etapa = ""; F.cp = ""; F.dia = "";
+  reiniciar("oper", VAL_OPER);
+  reiniciar("anos", VAL_ANOS);
+  if(ajuste) ajuste();
+  ajustarMeses();
+  pintarBotoneras(); pintarEncabezado(); pintar();
+}
+
+//  A que cuenta hay que mudarse para ver algo. Si esta en una sola, a esa;
+//  si esta en varias, a "todas"; si no esta en ninguna, no se mueve.
+function cuentaCon(prueba){
+  var cs = cuentasReales().filter(function(c){
+    return C.some(function(o){ return cuentaDe(o) === c && prueba(o); });
+  });
+  return cs.length === 1 ? cs[0] : cs.length > 1 ? TODAS : null;
+}
+
+function saltarInst(v){
+  var c = cuentaCon(function(o){ return instDe(o) === v; });
+  if(!c) return;
+  F.cuenta = c;
+  mudarContexto(function(){
+    reiniciar("inst", TODOS_INST);
+    Object.keys(F.inst).forEach(function(x){ F.inst[x] = (x === v); });
+    //  Las operativas validas cambiaron dos veces (cuenta e instrumento):
+    //  hay que rehacerlas con el contexto ya puesto.
+    reiniciar("oper", VAL_OPER);
+    reiniciar("anos", VAL_ANOS);
+  });
+}
+
+function saltarOper(v){
+  var c = cuentaCon(function(o){ return operDe(o) === v; });
+  if(!c) return;
+  var inst = null;
+  C.some(function(o){ if(operDe(o) === v){ inst = instDe(o); return true; } return false; });
+  F.cuenta = c;
+  mudarContexto(function(){
+    reiniciar("inst", TODOS_INST);
+    Object.keys(F.inst).forEach(function(x){ F.inst[x] = (x === inst); });
+    reiniciar("oper", VAL_OPER);
+    //  Se salta A esa operativa: queda ella sola, que es lo que se pidio al
+    //  picarla. Dejar las demas encendidas seria contestar otra pregunta.
+    Object.keys(F.oper).forEach(function(x){ F.oper[x] = (x === v); });
+    reiniciar("anos", VAL_ANOS);
+  });
+}
+
 //  Excluyente, como el periodo. Combinable parecia mejor idea hasta que se
 //  probo: con todo encendido, picarle a "Acciones" APAGA acciones y deja
 //  opciones a la vista, que es exactamente lo contrario de lo que uno
 //  espera al picarle. Excluyente hace que un clic muestre ese instrumento,
 //  y "todos" sigue dando la suma.
-var pintaInst = botonera("chipsInst", "pistaInst", VAL_INST, instDe, "inst", null, true,
+var pintaInst = botonera("chipsInst", "pistaInst", TODOS_INST, instDe, "inst", null, true,
   function(){
     //  Las etapas y los Call/Put de un instrumento no existen en el otro.
     //  Arrastrarlos deja la pantalla vacia sin decir por que.
@@ -847,13 +940,13 @@ var pintaInst = botonera("chipsInst", "pistaInst", VAL_INST, instDe, "inst", nul
     reiniciar("anos", VAL_ANOS);
  ajustarMeses();
     pintarBotoneras(); pintarEncabezado(); pintar();
-  }, true);
+  }, true, VAL_INST, saltarInst);
 
 
 //  Combinable y no exclusiva: hoy mismo Marco corre dos a la vez -- acciones
 //  swing y cripto -- y obligar a elegir una sola no dejaria ver eso.
-var pintaOper = botonera("chipsOper", null, VAL_OPER, operDe, "oper", null, false,
-  function(){ pintaOper(); pintarEncabezado(); pintar(); }, true);
+var pintaOper = botonera("chipsOper", null, TODAS_OPER, operDe, "oper", null, false,
+  function(){ pintaOper(); pintarEncabezado(); pintar(); }, true, VAL_OPER, saltarOper);
 
 //  Las dos cuentas se muestran SIEMPRE, aunque una este vacia.
 //  Antes la fila se escondia hasta que hubiera algo simulado, y el efecto
