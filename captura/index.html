@@ -53,9 +53,9 @@ button{font:inherit;cursor:pointer}
 .t.est{font-size:12.5px;font-weight:520;padding:9px 11px;min-height:42px}
 .t[aria-pressed="true"]{background:var(--acento);border-color:var(--acento);color:var(--fondo)}
 .t:focus-visible{outline:2px solid var(--acento);outline-offset:2px}
-input[type=text]{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--linea2);
+input[type=text],input[type=url]{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--linea2);
   background:var(--hundido);color:var(--tinta);font:inherit;font-size:14.5px;min-height:46px;margin-top:8px}
-input[type=text]:focus{outline:none;border-color:var(--acento)}
+input[type=text]:focus,input[type=url]:focus{outline:none;border-color:var(--acento)}
 
 .foto{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .foto button{flex:1;min-width:130px;padding:12px;border-radius:10px;border:1px dashed var(--linea2);
@@ -197,10 +197,24 @@ WhatsApp, Drive, tu galería&mdash; y de paso te quedan respaldados.</p>
   <p>Son <span id="dlgN"></span> anotaciones, todas de un jalón. Los gráficos van aparte:
   el botón de abajo los saca de la app para que los puedas mandar.</p>
   <textarea id="dlgTxt" readonly></textarea>
-  <div class="fila"><button class="pri" id="dlgDrive">Mandar a Drive</button></div>
+  <div class="fila"><button class="pri" id="dlgEnviar">Enviar</button></div>
   <div class="fila">
+    <button id="dlgDrive">Compartir</button>
     <button id="dlgCopiar">Copiar</button>
     <button id="dlgCerrar">Cerrar</button>
+  </div>
+  <div class="fila"><button class="chico" id="dlgCfg">Envío automático</button></div>
+  <div id="cfg" style="display:none;margin-top:10px">
+    <p style="margin:0 0 7px">Pega aquí lo que te dio el script de Drive. Se guarda
+    solo en este teléfono. Ver <b>Puente Drive — como instalarlo</b>.</p>
+    <input id="cfgUrl" type="url" placeholder="URL del script (termina en /exec)"
+           autocomplete="off" spellcheck="false">
+    <input id="cfgClave" type="text" placeholder="clave" autocomplete="off" spellcheck="false">
+    <div class="fila">
+      <button class="pri" id="cfgGuardar">Guardar</button>
+      <button id="cfgProbar">Probar</button>
+    </div>
+    <p id="cfgEstado" style="margin:7px 0 0"></p>
   </div>
   <div class="fila"><button id="dlgFotos">Sacar los gráficos</button></div>
   <div class="fila"><button id="dlgBorrar" style="color:var(--alerta)">Borrar todas</button></div>
@@ -222,7 +236,7 @@ var ESTRATEGIAS = ["0DTE","Gap a la alza","Gap a la alza IMP","Gap B a la alza",
   "Hanger diario","Hanger Semanal","Modelo de los 4 pasos","3 semanas","Verde Rojo semanal",
   "Estrategia earnings","Fed speech","Estrategia Inflacion","Método propio","Sin estrategia clara"];
 var LLAVE_VIEJA = "capturas_v1";
-var VERSION = "v94 · 20 ago 2026";     // se sella al publicar
+var VERSION = "v95 · 20 ago 2026";     // se sella al publicar
 var MAX_LADO = 1100, CALIDAD = 0.62;
 
 var g = function(id){ return document.getElementById(id); };
@@ -537,6 +551,84 @@ function nombreArchivo(){
   return "anotaciones_" + d.getFullYear() + "-" + p(d.getMonth()+1) + "-" + p(d.getDate())
        + "_" + p(d.getHours()) + p(d.getMinutes()) + ".txt";
 }
+// ------------------------------------------------------- envio automatico
+//  La hoja de compartir SIEMPRE pregunta en que carpeta guardar, y eso era lo
+//  que a Marco le quitaba el tiempo. Este camino la brinca: la app le manda
+//  el texto a un Google Apps Script suyo, y ese script lo escribe directo en
+//  la carpeta del proyecto en Drive.
+//
+//  La direccion y la clave se guardan SOLO en el telefono. No van en el
+//  codigo: esta app se publica en un repositorio publico y ahi cualquiera las
+//  leeria.
+//
+//  El envio va como text/plain a proposito. Con application/json el navegador
+//  manda primero una peticion de permiso (preflight) que Apps Script no
+//  contesta, y el envio falla sin decir por que.
+var CFG = "captura.puente";
+function cfgLeer(){
+  try{ return JSON.parse(localStorage.getItem(CFG) || "{}"); }catch(e){ return {}; }
+}
+async function mandarAlPuente(texto){
+  var c = cfgLeer();
+  if(!c.url) return {ok:false, error:"sin configurar"};
+  var r = await fetch(c.url, {
+    method: "POST",
+    headers: {"Content-Type": "text/plain;charset=utf-8"},
+    body: JSON.stringify({clave: c.clave || "", texto: texto})
+  });
+  return await r.json();
+}
+
+g("dlgEnviar").onclick = async function(){
+  var b = this, txt = g("dlgTxt").value;
+  if(!txt) return;
+  if(!cfgLeer().url){
+    //  Sin puente configurado, mandar al de compartir es mas util que un
+    //  error: el trabajo se hace igual, nada mas con un paso extra.
+    g("cfg").style.display = "block";
+    g("cfgEstado").textContent = "Primero configura el envío automático, o usa Compartir.";
+    return;
+  }
+  b.disabled = true; b.textContent = "Enviando…";
+  try{
+    var res = await mandarAlPuente(txt);
+    b.textContent = res.ok ? "Enviado ✓" : ("No se pudo: " + (res.error || "?"));
+  }catch(e){
+    b.textContent = "No se pudo — revisa la señal";
+  }
+  setTimeout(function(){ b.disabled = false; b.textContent = "Enviar"; }, 2600);
+};
+
+g("dlgCfg").onclick = function(){
+  var d = g("cfg"), abierto = d.style.display !== "none";
+  d.style.display = abierto ? "none" : "block";
+  if(!abierto){
+    var c = cfgLeer();
+    g("cfgUrl").value = c.url || "";
+    g("cfgClave").value = c.clave || "";
+  }
+};
+g("cfgGuardar").onclick = function(){
+  var url = g("cfgUrl").value.trim();
+  if(url && url.indexOf("/exec") < 0){
+    g("cfgEstado").textContent = "Esa URL no termina en /exec — revisa que sea la de la implementación.";
+    return;
+  }
+  localStorage.setItem(CFG, JSON.stringify({url: url, clave: g("cfgClave").value.trim()}));
+  g("cfgEstado").textContent = url ? "Guardado en este teléfono." : "Borrado.";
+};
+g("cfgProbar").onclick = async function(){
+  g("cfgEstado").textContent = "Probando…";
+  try{
+    var res = await mandarAlPuente("PRUEBA del puente — se puede borrar");
+    g("cfgEstado").textContent = res.ok
+      ? ("Funcionó ✓  se creó " + res.archivo)
+      : ("Contestó con error: " + (res.error || "?"));
+  }catch(e){
+    g("cfgEstado").textContent = "No contestó. Revisa la URL y que esté publicado para «cualquier usuario».";
+  }
+};
+
 g("dlgDrive").onclick = async function(){
   var b = this, txt = g("dlgTxt").value;
   if(!txt){ return; }
